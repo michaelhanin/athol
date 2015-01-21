@@ -80,8 +80,8 @@ private:
     };
 
     struct Buffers {
-        Buffer front;
-        Buffer back;
+        Buffer current;
+        Buffer pending;
     } m_buffers;
 
     DISPMANX_RESOURCE_HANDLE_T m_elementHandle;

@@ -66,10 +66,11 @@ Surface::Surface(Athol& athol, struct wl_client* client, struct wl_resource* res
 
 void Surface::repaint(Athol::Update& update)
 {
-    std::swap(m_buffers.front, m_buffers.back);
+    if (!!m_buffers.current)
+        vc_dispmanx_element_change_source(update.handle(), m_elementHandle,
+            vc_dispmanx_get_handle_from_wl_buffer(m_buffers.current.resource()));
 
-    vc_dispmanx_element_change_source(update.handle(), m_elementHandle,
-        vc_dispmanx_get_handle_from_wl_buffer(m_buffers.front.resource()));
+    std::swap(m_buffers.current, m_buffers.pending);
 }
 
 void Surface::dispatchFrameCallbacks(uint64_t time)
@@ -102,8 +103,8 @@ const struct wl_surface_interface Surface::m_surfaceInterface {
     {
         auto& surface = *static_cast<Surface*>(wl_resource_get_user_data(resource));
 
-        if (surface.m_buffers.back.resource() != bufferResource)
-            surface.m_buffers.back = Buffer(bufferResource);
+        if (surface.m_buffers.pending.resource() != bufferResource)
+            surface.m_buffers.pending = Buffer(bufferResource);
     },
     // damage
     [](struct wl_client*, struct wl_resource*, int32_t, int32_t, int32_t, int32_t) { },
