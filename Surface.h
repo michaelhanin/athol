@@ -28,6 +28,11 @@
 #ifndef Surface_h
 #define Surface_h
 
+#include <wayland-server.h>
+
+#define BUILD_WAYLAND
+#include <bcm_host.h>
+
 #include "Athol.h"
 
 class Surface {

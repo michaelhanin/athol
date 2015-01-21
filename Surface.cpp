@@ -27,7 +27,11 @@
 
 #include "Surface.h"
 
+#include "Athol.h"
 #include <utility>
+
+#define BUILD_WAYLAND
+#include <bcm_host.h>
 
 struct FrameCallback {
     struct wl_resource* resource;
