@@ -53,6 +53,7 @@ Athol::Athol(const char* socketName)
 
     m_vsyncSource = wl_event_loop_add_fd(wl_display_get_event_loop(m_display),
         m_eventfd, WL_EVENT_READABLE, vsyncCallback, this);
+    m_repaintSource = nullptr;
 
     m_backend.eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     eglInitialize(m_backend.eglDisplay, nullptr, nullptr);
@@ -81,13 +82,17 @@ void Athol::run()
 void Athol::scheduleRepaint(Surface& surface)
 {
     wl_list_insert(m_surfaceUpdateList.prev, &surface.link);
-    wl_event_loop_add_idle(wl_display_get_event_loop(m_display),
-            Athol::repaint, this);
+
+    if (!m_repaintSource)
+        m_repaintSource = wl_event_loop_add_idle(
+            wl_display_get_event_loop(m_display), Athol::repaint, this);
 }
 
 void Athol::repaint(void* data)
 {
     auto& athol = *static_cast<Athol*>(data);
+    athol.m_repaintSource = nullptr;
+
     Athol::Update update(athol);
 
     Surface* surface;

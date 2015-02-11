@@ -81,6 +81,7 @@ private:
 
     struct wl_list m_surfaceUpdateList;
     struct wl_event_source* m_vsyncSource;
+    struct wl_event_source* m_repaintSource;
     int m_eventfd;
     static void repaint(void*);
     static int vsyncCallback(int, uint32_t, void*);
