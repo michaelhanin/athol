@@ -54,6 +54,9 @@ public:
         Update(Athol&);
         ~Update();
 
+        Update(const Update&) = delete;
+        Update& operator=(const Update&) = delete;
+
         DISPMANX_UPDATE_HANDLE_T handle() { return m_updateHandle; }
         DISPMANX_DISPLAY_HANDLE_T displayHandle() { return m_athol.m_backend.displayHandle; }
 
