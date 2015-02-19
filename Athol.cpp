@@ -166,7 +166,7 @@ const struct wl_compositor_interface Athol::m_compositorInterface = {
 Athol::Update::Update(Athol& athol)
     : m_athol(athol)
 {
-    m_updateHandle = vc_dispmanx_update_start(0);
+    m_updateHandle = vc_dispmanx_update_start(10);
 }
 
 Athol::Update::~Update()
