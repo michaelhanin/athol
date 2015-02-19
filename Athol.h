@@ -59,6 +59,7 @@ public:
 
         DISPMANX_UPDATE_HANDLE_T handle() { return m_updateHandle; }
         DISPMANX_DISPLAY_HANDLE_T displayHandle() { return m_athol.m_backend.displayHandle; }
+        EGLDisplay eglDisplay() { return m_athol.m_backend.eglDisplay; }
 
     private:
         Athol& m_athol;
