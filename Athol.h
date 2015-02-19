@@ -69,12 +69,15 @@ public:
     virtual struct wl_display* display() const override;
     virtual void initializeInput(std::unique_ptr<API::InputClient>) override;
 
+    using BindDisplayType = PFNEGLBINDWAYLANDDISPLAYWL;
+    static BindDisplayType f_bindDisplay;
+
+    using QueryWaylandBufferType = PFNEGLQUERYWAYLANDBUFFERWL;
+    static QueryWaylandBufferType f_queryWaylandBuffer;
+
 private:
     static void bindCompositorInterface(struct wl_client*, void*, uint32_t, uint32_t);
     static const struct wl_compositor_interface m_compositorInterface;
-
-    using BindDisplayType = PFNEGLBINDWAYLANDDISPLAYWL;
-    static BindDisplayType f_bindDisplay;
 
     struct wl_display* m_display;
     bool m_initialized;

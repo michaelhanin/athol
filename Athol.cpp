@@ -34,6 +34,7 @@
 #include <sys/time.h>
 
 Athol::BindDisplayType Athol::f_bindDisplay = nullptr;
+Athol::QueryWaylandBufferType Athol::f_queryWaylandBuffer = nullptr;
 
 Athol::Athol(const char* socketName)
     : m_display(wl_display_create())
@@ -59,6 +60,8 @@ Athol::Athol(const char* socketName)
     eglInitialize(m_backend.eglDisplay, nullptr, nullptr);
 
     f_bindDisplay = reinterpret_cast<BindDisplayType>(eglGetProcAddress("eglBindWaylandDisplayWL"));
+    f_queryWaylandBuffer = reinterpret_cast<QueryWaylandBufferType>(eglGetProcAddress("eglQueryWaylandBufferWL"));
+
     f_bindDisplay(m_backend.eglDisplay, m_display);
 
     bcm_host_init();
