@@ -84,7 +84,10 @@ private:
         Buffer pending;
     } m_buffers;
 
-    DISPMANX_RESOURCE_HANDLE_T m_elementHandle;
+    DISPMANX_ELEMENT_HANDLE_T createElement(Athol::Update&, DISPMANX_RESOURCE_HANDLE_T);
+
+    DISPMANX_ELEMENT_HANDLE_T m_elementHandle;
+    DISPMANX_RESOURCE_HANDLE_T m_background;
 };
 
 #endif // Surface_h

@@ -29,6 +29,7 @@
 
 #include "Athol.h"
 #include <utility>
+#include <vector>
 
 #define BUILD_WAYLAND
 #include <bcm_host.h>
@@ -40,38 +41,51 @@ struct FrameCallback {
 
 Surface::Surface(Athol& athol, struct wl_client* client, struct wl_resource* resource, uint32_t id)
     : m_athol(athol)
+    , m_background(DISPMANX_NO_HANDLE)
 {
     m_resource = wl_resource_create(client, &wl_surface_interface, wl_resource_get_version(resource), id);
     wl_resource_set_implementation(m_resource, &m_surfaceInterface, this, destroySurface);
 
     wl_list_init(&m_frameCallbacks);
 
-    static VC_DISPMANX_ALPHA_T alpha = {
-        static_cast<DISPMANX_FLAGS_ALPHA_T>(DISPMANX_FLAGS_ALPHA_FIXED_ALL_PIXELS),
-        255, 0
-    };
-
     {
         Athol::Update update(athol);
 
-        VC_RECT_T srcRect, destRect;
-        vc_dispmanx_rect_set(&srcRect, 0, 0, 1280 << 16, 720 << 16);
-        vc_dispmanx_rect_set(&destRect, 0, 0, 1280, 720);
+        uint32_t imagePtr;
+        VC_RECT_T rect;
+        vc_dispmanx_rect_set(&rect, 0, 0, 1280, 720);
+        std::vector<uint8_t> pixels(1280 * 720 * 4, 0);
+        m_background = vc_dispmanx_resource_create(VC_IMAGE_ARGB8888, 1280, 720, &imagePtr);
+        vc_dispmanx_resource_write_data(m_background, VC_IMAGE_ARGB8888, 1280 * 4, pixels.data(), &rect);
 
-        m_elementHandle = vc_dispmanx_element_add(update.handle(), update.displayHandle(), 0,
-            &destRect, DISPMANX_NO_HANDLE, &srcRect, DISPMANX_PROTECTION_NONE, &alpha,
-            nullptr, DISPMANX_NO_ROTATE);
+        m_elementHandle = createElement(update, m_background);
     }
 }
 
 void Surface::repaint(Athol::Update& update)
 {
     std::swap(m_buffers.current, m_buffers.pending);
+    if (!m_buffers.current)
+        return;
 
-    if (!!m_buffers.current)
-        vc_dispmanx_element_change_source(update.handle(), m_elementHandle,
-            vc_dispmanx_get_handle_from_wl_buffer(m_buffers.current.resource()));
+    EGLint width, height;
+    Athol::f_queryWaylandBuffer(update.eglDisplay(), m_buffers.current.resource(), EGL_WIDTH, &width);
+    Athol::f_queryWaylandBuffer(update.eglDisplay(), m_buffers.current.resource(), EGL_HEIGHT, &height);
 
+    if (width != 1280 || height != 720)
+        return;
+
+    if (m_background != DISPMANX_NO_HANDLE) {
+        vc_dispmanx_resource_delete(m_background);
+        m_background = DISPMANX_NO_HANDLE;
+
+        if (m_elementHandle != DISPMANX_NO_HANDLE)
+            vc_dispmanx_element_remove(update.handle(), m_elementHandle);
+        m_elementHandle = createElement(update, DISPMANX_NO_HANDLE);
+    }
+
+    vc_dispmanx_element_change_source(update.handle(), m_elementHandle,
+        vc_dispmanx_get_handle_from_wl_buffer(m_buffers.current.resource()));
 }
 
 void Surface::dispatchFrameCallbacks(uint64_t time)
@@ -139,3 +153,19 @@ const struct wl_surface_interface Surface::m_surfaceInterface {
     // set_buffer_scale
     [](struct wl_client*, struct wl_resource*, int32_t) { }
 };
+
+DISPMANX_ELEMENT_HANDLE_T Surface::createElement(Athol::Update& update, DISPMANX_RESOURCE_HANDLE_T resource)
+{
+    static VC_DISPMANX_ALPHA_T alpha = {
+        static_cast<DISPMANX_FLAGS_ALPHA_T>(DISPMANX_FLAGS_ALPHA_FIXED_ALL_PIXELS),
+        255, 0
+    };
+
+    VC_RECT_T srcRect, destRect;
+    vc_dispmanx_rect_set(&srcRect, 0, 0, 1280 << 16, 720 << 16);
+    vc_dispmanx_rect_set(&destRect, 0, 0, 1280, 720);
+
+    return vc_dispmanx_element_add(update.handle(), update.displayHandle(), 0,
+        &destRect, resource, &srcRect, DISPMANX_PROTECTION_NONE, &alpha,
+        nullptr, DISPMANX_NO_ROTATE);
+}
