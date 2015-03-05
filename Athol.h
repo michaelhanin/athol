@@ -57,6 +57,9 @@ public:
         Update(const Update&) = delete;
         Update& operator=(const Update&) = delete;
 
+        uint32_t width() { return m_athol.m_width; }
+        uint32_t height() { return m_athol.m_height; }
+
         DISPMANX_UPDATE_HANDLE_T handle() { return m_updateHandle; }
         DISPMANX_DISPLAY_HANDLE_T displayHandle() { return m_athol.m_backend.displayHandle; }
         EGLDisplay eglDisplay() { return m_athol.m_backend.eglDisplay; }
@@ -65,6 +68,9 @@ public:
         Athol& m_athol;
         DISPMANX_UPDATE_HANDLE_T m_updateHandle;
     };
+
+    uint32_t width() { return m_width; }
+    uint32_t height() { return m_height; }
 
     // API::Compositor
     virtual struct wl_display* display() const override;
@@ -90,6 +96,9 @@ private:
     static void repaint(void*);
     static int vsyncCallback(int, uint32_t, void*);
     static void updateComplete(DISPMANX_UPDATE_HANDLE_T, void*);
+
+    uint32_t m_width;
+    uint32_t m_height;
 
     struct RPiBackend {
         EGLDisplay eglDisplay;

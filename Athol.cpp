@@ -68,6 +68,8 @@ Athol::Athol(const char* socketName)
 
     m_backend.displayHandle = vc_dispmanx_display_open(DISPMANX_ID_HDMI);
 
+    graphics_get_display_size(DISPMANX_ID_HDMI, &m_width, &m_height);
+
     m_initialized = true;
 }
 

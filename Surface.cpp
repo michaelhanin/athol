@@ -53,10 +53,10 @@ Surface::Surface(Athol& athol, struct wl_client* client, struct wl_resource* res
 
         uint32_t imagePtr;
         VC_RECT_T rect;
-        vc_dispmanx_rect_set(&rect, 0, 0, 1280, 720);
-        std::vector<uint8_t> pixels(1280 * 720 * 4, 0);
-        m_background = vc_dispmanx_resource_create(VC_IMAGE_ARGB8888, 1280, 720, &imagePtr);
-        vc_dispmanx_resource_write_data(m_background, VC_IMAGE_ARGB8888, 1280 * 4, pixels.data(), &rect);
+        vc_dispmanx_rect_set(&rect, 0, 0, athol.width(), athol.height());
+        std::vector<uint8_t> pixels(athol.width() * athol.height() * 4, 0);
+        m_background = vc_dispmanx_resource_create(VC_IMAGE_ARGB8888, athol.width(), athol.height(), &imagePtr);
+        vc_dispmanx_resource_write_data(m_background, VC_IMAGE_ARGB8888, athol.width() * 4, pixels.data(), &rect);
 
         m_elementHandle = createElement(update, m_background);
     }
@@ -72,7 +72,7 @@ void Surface::repaint(Athol::Update& update)
     Athol::f_queryWaylandBuffer(update.eglDisplay(), m_buffers.current.resource(), EGL_WIDTH, &width);
     Athol::f_queryWaylandBuffer(update.eglDisplay(), m_buffers.current.resource(), EGL_HEIGHT, &height);
 
-    if (width != 1280 || height != 720)
+    if (width != update.width() || height != update.height())
         return;
 
     if (m_background != DISPMANX_NO_HANDLE) {
@@ -162,8 +162,8 @@ DISPMANX_ELEMENT_HANDLE_T Surface::createElement(Athol::Update& update, DISPMANX
     };
 
     VC_RECT_T srcRect, destRect;
-    vc_dispmanx_rect_set(&srcRect, 0, 0, 1280 << 16, 720 << 16);
-    vc_dispmanx_rect_set(&destRect, 0, 0, 1280, 720);
+    vc_dispmanx_rect_set(&srcRect, 0, 0, update.width() << 16, update.height() << 16);
+    vc_dispmanx_rect_set(&destRect, 0, 0, update.width(), update.height());
 
     return vc_dispmanx_element_add(update.handle(), update.displayHandle(), 0,
         &destRect, resource, &srcRect, DISPMANX_PROTECTION_NONE, &alpha,

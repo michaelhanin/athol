@@ -43,6 +43,8 @@ public:
 
 class Compositor {
 public:
+    virtual uint32_t width() = 0;
+    virtual uint32_t height() = 0;
     virtual struct wl_display* display() const = 0;
     virtual void initializeInput(std::unique_ptr<InputClient>) = 0;
 };
