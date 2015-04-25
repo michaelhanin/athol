@@ -139,8 +139,13 @@ const struct wl_surface_interface Surface::m_surfaceInterface {
     {
         auto& surface = *static_cast<Surface*>(wl_resource_get_user_data(resource));
 
-        if (surface.m_buffers.pending.resource() != bufferResource)
+        if (surface.m_buffers.pending.resource() != bufferResource) {
+            struct wl_resource* previousBufferResource = surface.m_buffers.pending.resource();
             surface.m_buffers.pending = Buffer(bufferResource);
+
+            if (previousBufferResource)
+                wl_resource_queue_event(previousBufferResource, WL_BUFFER_RELEASE);
+        }
     },
     // damage
     [](struct wl_client*, struct wl_resource*, int32_t, int32_t, int32_t, int32_t) { },

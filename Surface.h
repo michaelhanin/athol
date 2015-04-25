@@ -63,13 +63,16 @@ private:
             : m_resource(resource)
         { }
 
-        Buffer(Buffer&&) = default;
-        Buffer& operator=(Buffer&&) = default;
-
-        ~Buffer()
+        Buffer(Buffer&& o)
+            : m_resource(o.m_resource)
         {
-            if (m_resource)
-                wl_resource_queue_event(m_resource, WL_BUFFER_RELEASE);
+            o.m_resource = nullptr;
+        }
+
+        Buffer& operator=(Buffer&& o)
+        {
+            m_resource = o.m_resource;
+            o.m_resource = nullptr;
         }
 
         bool operator!() { return !m_resource; }
