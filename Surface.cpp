@@ -62,6 +62,27 @@ Surface::Surface(Athol& athol, struct wl_client* client, struct wl_resource* res
     }
 }
 
+Surface::~Surface()
+{
+    FrameCallback* callback;
+    FrameCallback* nextCallback;
+    wl_list_for_each_safe(callback, nextCallback, &m_frameCallbacks, link)
+        wl_resource_destroy(callback->resource);
+
+    wl_list_init(&m_frameCallbacks);
+
+    if (m_background == DISPMANX_NO_HANDLE && m_elementHandle == DISPMANX_NO_HANDLE)
+        return;
+
+    {
+        Athol::Update update(m_athol);
+        if (m_background != DISPMANX_NO_HANDLE)
+            vc_dispmanx_resource_delete(m_background);
+        if (m_elementHandle != DISPMANX_NO_HANDLE)
+            vc_dispmanx_element_remove(update.handle(), m_elementHandle);
+    }
+}
+
 void Surface::repaint(Athol::Update& update)
 {
     std::swap(m_buffers.current, m_buffers.pending);

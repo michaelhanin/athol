@@ -38,6 +38,7 @@
 class Surface {
 public:
     Surface(Athol& athol, struct wl_client*, struct wl_resource*, uint32_t);
+    ~Surface();
 
     void repaint(Athol::Update&);
     void dispatchFrameCallbacks(uint64_t time);
