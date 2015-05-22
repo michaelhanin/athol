@@ -39,6 +39,7 @@
 #define BUILD_WAYLAND
 #include <bcm_host.h>
 
+class Pointer;
 class Surface;
 
 class Athol final : public API::Compositor {
@@ -48,6 +49,7 @@ public:
 
     void run();
     void scheduleRepaint(Surface&);
+    void scheduleReposition(Pointer&);
 
     class Update {
     public:
@@ -90,6 +92,7 @@ private:
     bool m_initialized;
 
     struct wl_list m_surfaceUpdateList;
+    struct wl_list m_pointerUpdateList;
     struct wl_event_source* m_vsyncSource;
     struct wl_event_source* m_repaintSource;
     int m_eventfd;

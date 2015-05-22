@@ -27,6 +27,7 @@
 
 #include "Athol.h"
 
+#include "Pointer.h"
 #include "Surface.h"
 #include <cstdio>
 #include <cstdlib>
@@ -39,6 +40,7 @@ Athol::QueryWaylandBufferType Athol::f_queryWaylandBuffer = nullptr;
 Athol::Athol(const char* socketName)
     : m_display(wl_display_create())
     , m_initialized(false)
+    , m_input(*this)
 {
     wl_display_add_socket(m_display, socketName);
     setenv("WAYLAND_DISPLAY", socketName, 1);
@@ -47,6 +49,7 @@ Athol::Athol(const char* socketName)
         return;
 
     wl_list_init(&m_surfaceUpdateList);
+    wl_list_init(&m_pointerUpdateList);
 
     m_eventfd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
     if (m_eventfd == -1)
@@ -93,6 +96,15 @@ void Athol::scheduleRepaint(Surface& surface)
             wl_display_get_event_loop(m_display), Athol::repaint, this);
 }
 
+void Athol::scheduleReposition(Pointer& pointer)
+{
+    wl_list_insert(m_pointerUpdateList.prev, &pointer.link);
+
+    if (!m_repaintSource)
+        m_repaintSource = wl_event_loop_add_idle(
+            wl_display_get_event_loop(m_display), Athol::repaint, this);
+}
+
 void Athol::repaint(void* data)
 {
     auto& athol = *static_cast<Athol*>(data);
@@ -103,6 +115,11 @@ void Athol::repaint(void* data)
     Surface* surface;
     wl_list_for_each(surface, &athol.m_surfaceUpdateList, link)
         surface->repaint(update);
+
+    Pointer* pointer;
+    wl_list_for_each(pointer, &athol.m_pointerUpdateList, link)
+        pointer->reposition(update);
+    wl_list_init(&athol.m_pointerUpdateList);
 }
 
 int Athol::vsyncCallback(int fd, uint32_t mask, void* data)
@@ -183,5 +200,5 @@ struct wl_display* Athol::display() const
 
 void Athol::initializeInput(std::unique_ptr<API::InputClient> client)
 {
-    m_input.initialize(*this, std::move(client));
+    m_input.initialize(std::move(client));
 }

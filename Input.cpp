@@ -28,10 +28,18 @@
 #include "Input.h"
 
 #include "Athol.h"
+#include "Pointer.h"
 #include <cstdio>
 #include <fcntl.h>
 
-void Input::initialize(const Athol& athol, std::unique_ptr<API::InputClient> client)
+Input::Input(Athol& athol)
+    : m_athol(athol)
+{
+}
+
+Input::~Input() = default;
+
+void Input::initialize(std::unique_ptr<API::InputClient> client)
 {
     if (!client) {
         std::fprintf(stderr, "[Athol] No input client provided.\n");
@@ -55,7 +63,7 @@ void Input::initialize(const Athol& athol, std::unique_ptr<API::InputClient> cli
         return;
     }
 
-    m_eventSource = wl_event_loop_add_fd(wl_display_get_event_loop(athol.display()),
+    m_eventSource = wl_event_loop_add_fd(wl_display_get_event_loop(m_athol.display()),
         libinput_get_fd(m_libinput), WL_EVENT_READABLE, dispatch, this);
     m_client = std::move(client);
 
@@ -101,10 +109,17 @@ void Input::processEvents()
         case LIBINPUT_EVENT_POINTER_MOTION:
         {
             auto* pointerEvent = libinput_event_get_pointer_event(event);
+            double dx = libinput_event_pointer_get_dx(pointerEvent);
+            double dy = libinput_event_pointer_get_dy(pointerEvent);
+
+            if (!m_cursorPointer)
+                m_cursorPointer.reset(new Pointer(m_athol));
+
+            m_cursorPointer->move(dx, dy);
+            m_athol.scheduleReposition(*m_cursorPointer);
+
             m_client->handlePointerMotion(
-                libinput_event_pointer_get_time(pointerEvent),
-                libinput_event_pointer_get_dx(pointerEvent),
-                libinput_event_pointer_get_dy(pointerEvent));
+                libinput_event_pointer_get_time(pointerEvent), dx, dy);
             break;
         }
         case LIBINPUT_EVENT_POINTER_BUTTON:

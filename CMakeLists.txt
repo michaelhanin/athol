@@ -7,7 +7,15 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 configure_file(athol.pc.in ${CMAKE_BINARY_DIR}/athol.pc @ONLY)
 
-add_executable(athol Athol.cpp Main.cpp ShellLoader.cpp Surface.cpp Input.cpp)
+add_executable(athol
+    Athol.cpp
+    Input.cpp
+    Main.cpp
+    ShellLoader.cpp
+    Surface.cpp
+    Pointer.cpp
+    PointerData.cpp
+)
 
 find_package(EGL REQUIRED)
 find_package(GLIB REQUIRED)

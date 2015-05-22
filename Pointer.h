@@ -25,37 +25,36 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef Input_h
-#define Input_h
+#ifndef Pointer_h
+#define Pointer_h
 
-#include <API/Interfaces.h>
-#include <libinput.h>
-#include <libudev.h>
-#include <wayland-server.h>
+#include "Athol.h"
+#include <wayland-util.h>
 
-class Athol;
-class Pointer;
-
-class Input {
+class Pointer {
 public:
-    Input(Athol&);
-    ~Input();
-    void initialize(std::unique_ptr<API::InputClient>);
+    Pointer(Athol&);
+    ~Pointer();
+
+    void move(double dx, double dy);
+    void reposition(Athol::Update&);
+
+    struct wl_list link;
+
+    struct CursorPointerData {
+        static const uint32_t width = 48;
+        static const uint32_t height = 48;
+        static uint8_t data[width * height * 4 + 1];
+    };
 
 private:
-    static struct libinput_interface m_interface;
-
-    static int dispatch(int, uint32_t, void*);
-    void processEvents();
-
     Athol& m_athol;
-    std::unique_ptr<API::InputClient> m_client;
+    DISPMANX_ELEMENT_HANDLE_T m_elementHandle;
 
-    std::unique_ptr<Pointer> m_cursorPointer;
+    const uint32_t pointerWidth = 16;
+    const uint32_t pointerHeight = 16;
 
-    struct udev* m_udev;
-    struct libinput* m_libinput;
-    struct wl_event_source* m_eventSource;
+    std::pair<uint32_t, uint32_t> m_position;
 };
 
-#endif // Input_h
+#endif
