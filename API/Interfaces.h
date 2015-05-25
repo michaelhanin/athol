@@ -39,6 +39,11 @@ public:
 
     virtual void handlePointerMotion(uint32_t time, double dx, double dy) = 0;
     virtual void handlePointerButton(uint32_t time, uint32_t button, uint32_t state) = 0;
+
+    enum class PointerAxis {
+        Wheel,
+    };
+    virtual void handlePointerAxis(uint32_t time, PointerAxis axis, double dx, double dy) = 0;
 };
 
 class Compositor {

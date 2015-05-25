@@ -130,6 +130,24 @@ void Input::processEvents()
                 libinput_event_pointer_get_button_state(pointerEvent));
             break;
         }
+        case LIBINPUT_EVENT_POINTER_AXIS:
+        {
+            auto* pointerEvent = libinput_event_get_pointer_event(event);
+            double dx = 0, dy = 0;
+            if (libinput_event_pointer_has_axis(pointerEvent, LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL))
+                dx = libinput_event_pointer_get_axis_value(pointerEvent, LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL);
+            if (libinput_event_pointer_has_axis(pointerEvent, LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL))
+                dy = libinput_event_pointer_get_axis_value(pointerEvent, LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL);
+
+            switch (libinput_event_pointer_get_axis_source(pointerEvent)) {
+                case LIBINPUT_POINTER_AXIS_SOURCE_WHEEL: {
+                    m_client->handlePointerAxis(
+                        libinput_event_pointer_get_time(pointerEvent),
+                        API::InputClient::PointerAxis::Wheel, dx, dy);
+                }
+            }
+        }
+        }
 
         libinput_event_destroy(event);
     }
