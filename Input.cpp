@@ -30,11 +30,13 @@
 #include "Athol.h"
 #include "Pointer.h"
 #include <cstdio>
+#include <cstdlib>
 #include <fcntl.h>
 
 Input::Input(Athol& athol)
     : m_athol(athol)
 {
+    m_handlePointerEvents = std::getenv("ATHOL_POINTER_EVENTS");
 }
 
 Input::~Input() = default;
@@ -108,6 +110,9 @@ void Input::processEvents()
         }
         case LIBINPUT_EVENT_POINTER_MOTION:
         {
+            if (!m_handlePointerEvents)
+                return;
+
             auto* pointerEvent = libinput_event_get_pointer_event(event);
             double dx = libinput_event_pointer_get_dx(pointerEvent);
             double dy = libinput_event_pointer_get_dy(pointerEvent);
@@ -123,6 +128,10 @@ void Input::processEvents()
             break;
         }
         case LIBINPUT_EVENT_POINTER_BUTTON:
+        {
+            if (!m_handlePointerEvents)
+                return;
+
             auto* pointerEvent = libinput_event_get_pointer_event(event);
             m_client->handlePointerButton(
                 libinput_event_pointer_get_time(pointerEvent),
@@ -132,6 +141,9 @@ void Input::processEvents()
         }
         case LIBINPUT_EVENT_POINTER_AXIS:
         {
+            if (!m_handlePointerEvents)
+                return;
+
             auto* pointerEvent = libinput_event_get_pointer_event(event);
             double dx = 0, dy = 0;
             if (libinput_event_pointer_has_axis(pointerEvent, LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL))

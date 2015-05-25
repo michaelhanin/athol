@@ -51,6 +51,7 @@ private:
     Athol& m_athol;
     std::unique_ptr<API::InputClient> m_client;
 
+    bool m_handlePointerEvents;
     std::unique_ptr<Pointer> m_cursorPointer;
 
     struct udev* m_udev;
