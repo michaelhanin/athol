@@ -92,10 +92,15 @@ private:
     bool m_initialized;
 
     struct wl_list m_surfaceUpdateList;
+    struct wl_list m_pendingSurfaceUpdateList;
     struct wl_list m_pointerUpdateList;
+    struct wl_list m_pendingPointerUpdateList;
     struct wl_event_source* m_vsyncSource;
     struct wl_event_source* m_repaintSource;
     int m_eventfd;
+    bool m_updateInProgress;
+
+    void scheduleRepaintSource();
     static void repaint(void*);
     static int vsyncCallback(int, uint32_t, void*);
     static void updateComplete(DISPMANX_UPDATE_HANDLE_T, void*);

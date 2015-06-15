@@ -40,6 +40,7 @@ Athol::QueryWaylandBufferType Athol::f_queryWaylandBuffer = nullptr;
 Athol::Athol(const char* socketName)
     : m_display(wl_display_create())
     , m_initialized(false)
+    , m_updateInProgress(false)
     , m_input(*this)
 {
     wl_display_add_socket(m_display, socketName);
@@ -49,7 +50,9 @@ Athol::Athol(const char* socketName)
         return;
 
     wl_list_init(&m_surfaceUpdateList);
+    wl_list_init(&m_pendingSurfaceUpdateList);
     wl_list_init(&m_pointerUpdateList);
+    wl_list_init(&m_pendingPointerUpdateList);
 
     m_eventfd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
     if (m_eventfd == -1)
@@ -89,17 +92,40 @@ void Athol::run()
 
 void Athol::scheduleRepaint(Surface& surface)
 {
-    wl_list_insert(m_surfaceUpdateList.prev, &surface.link);
+    if (m_updateInProgress) {
+        wl_list_insert(m_pendingSurfaceUpdateList.prev, &surface.link);
+        return;
+    }
 
-    if (!m_repaintSource)
-        m_repaintSource = wl_event_loop_add_idle(
-            wl_display_get_event_loop(m_display), Athol::repaint, this);
+    Surface* listedSurface;
+    wl_list_for_each(listedSurface, &m_pointerUpdateList, link) {
+        if (&surface == listedSurface)
+            return;
+    }
+
+    wl_list_insert(m_surfaceUpdateList.prev, &surface.link);
+    scheduleRepaintSource();
 }
 
 void Athol::scheduleReposition(Pointer& pointer)
 {
-    wl_list_insert(m_pointerUpdateList.prev, &pointer.link);
+    if (m_updateInProgress) {
+        wl_list_insert(m_pendingPointerUpdateList.prev, &pointer.link);
+        return;
+    }
 
+    Pointer* listedPointer;
+    wl_list_for_each(listedPointer, &m_pointerUpdateList, link) {
+        if (&pointer == listedPointer)
+            return;
+    }
+
+    wl_list_insert(m_pointerUpdateList.prev, &pointer.link);
+    scheduleRepaintSource();
+}
+
+void Athol::scheduleRepaintSource()
+{
     if (!m_repaintSource)
         m_repaintSource = wl_event_loop_add_idle(
             wl_display_get_event_loop(m_display), Athol::repaint, this);
@@ -108,6 +134,7 @@ void Athol::scheduleReposition(Pointer& pointer)
 void Athol::repaint(void* data)
 {
     auto& athol = *static_cast<Athol*>(data);
+    athol.m_updateInProgress = true;
     athol.m_repaintSource = nullptr;
 
     Athol::Update update(athol);
@@ -119,7 +146,6 @@ void Athol::repaint(void* data)
     Pointer* pointer;
     wl_list_for_each(pointer, &athol.m_pointerUpdateList, link)
         pointer->reposition(update);
-    wl_list_init(&athol.m_pointerUpdateList);
 }
 
 int Athol::vsyncCallback(int fd, uint32_t mask, void* data)
@@ -138,7 +164,28 @@ int Athol::vsyncCallback(int fd, uint32_t mask, void* data)
     wl_list_for_each(surface, &athol.m_surfaceUpdateList, link)
         surface->dispatchFrameCallbacks(time);
 
+    athol.m_updateInProgress = false;
     wl_list_init(&athol.m_surfaceUpdateList);
+    wl_list_init(&athol.m_pointerUpdateList);
+
+    bool scheduleRepaintSource = false;
+
+    if (!wl_list_empty(&athol.m_pendingSurfaceUpdateList)) {
+        wl_list_insert_list(&athol.m_surfaceUpdateList, &athol.m_pendingSurfaceUpdateList);
+        wl_list_init(&athol.m_pendingSurfaceUpdateList);
+
+        scheduleRepaintSource = true;
+    }
+
+    if (!wl_list_empty(&athol.m_pendingPointerUpdateList)) {
+        wl_list_insert_list(&athol.m_pointerUpdateList, &athol.m_pendingPointerUpdateList);
+        wl_list_init(&athol.m_pendingPointerUpdateList);
+
+        scheduleRepaintSource = true;
+    }
+
+    if (scheduleRepaintSource)
+        athol.scheduleRepaintSource();
 
     return 1;
 }
