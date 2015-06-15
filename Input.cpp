@@ -111,7 +111,7 @@ void Input::processEvents()
         case LIBINPUT_EVENT_POINTER_MOTION:
         {
             if (!m_handlePointerEvents)
-                return;
+                break;
 
             auto* pointerEvent = libinput_event_get_pointer_event(event);
             double dx = libinput_event_pointer_get_dx(pointerEvent);
@@ -130,7 +130,7 @@ void Input::processEvents()
         case LIBINPUT_EVENT_POINTER_BUTTON:
         {
             if (!m_handlePointerEvents)
-                return;
+                break;
 
             auto* pointerEvent = libinput_event_get_pointer_event(event);
             m_client->handlePointerButton(
@@ -142,7 +142,7 @@ void Input::processEvents()
         case LIBINPUT_EVENT_POINTER_AXIS:
         {
             if (!m_handlePointerEvents)
-                return;
+                break;
 
             auto* pointerEvent = libinput_event_get_pointer_event(event);
             double dx = 0, dy = 0;
