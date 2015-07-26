@@ -32,9 +32,16 @@ int main()
 {
     Athol::Compositor& athol (Athol::Compositor::create("athol-0"));
 
-    Athol::ShellLoader::load(athol.loader());
+    if (athol.IsOperational() == false) {
 
-    athol.run();
+        fprintf(stderr, "[Athol] Compositor was not constructed succefully.\n");
+    }
+    else {
+
+        Athol::ShellLoader::load(athol.loader());
+
+        athol.run();
+    }
 
     athol.destroy();
 

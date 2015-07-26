@@ -73,17 +73,14 @@ Display::~Display()
 
 static void complete(HandleUpdate, void* data)
 {
-    /*
-    Athol& athol = *static_cast<Athol*>(data);
+    Compositor* compositor = static_cast<Compositor*>(data);
 
-    struct timeval tv;
-    gettimeofday(&tv, nullptr);
-    uint64_t time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    assert(compositor != nullptr);
 
-    ssize_t ret = write(athol.m_eventfd, &time, sizeof(time));
-    if (ret != sizeof(time))
-        return; // FIXME: At least log this.
-    */
+    if (compositor != nullptr)
+    {
+        compositor->updated();
+    }
 }
 
 Update::Update(const uint32_t width, const uint32_t height)

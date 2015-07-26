@@ -52,11 +52,9 @@ public:
     // Static methods, to access the singelton compositor.
     inline static Compositor& create (const char name[])
     {
-        assert (g_instance == nullptr);
-
         Compositor* newInstance = new Compositor(name);
 
-        assert (newInstance != nullptr);
+        assert ( (newInstance != nullptr) && (newInstance == g_instance) );
 
         return (*newInstance);
     }
@@ -72,6 +70,11 @@ public:
         return (*g_instance);
     }
 
+    inline bool IsOperational () const 
+    {
+        return (m_eventfd != -1);
+    }
+
     void run();
     void scheduleRepaint(Surface&);
     void scheduleReposition(Pointer&);
@@ -80,23 +83,21 @@ public:
     API::Compositor* loader ();
 
     void repaint();
-    void completed();
+    void completed(int fd);
+    void updated();
 
 private:
-    friend class Loader;
-    friend class Callbacks;
-
     pthread_mutex_t m_syncMutex;
 
     unsigned long long m_repaintSequence;
+    struct wl_event_source* m_vsyncSource;
     struct wl_list m_surfaceList;
     struct wl_list m_pointerList;
     struct wl_list m_callbackList;
+    int m_eventfd;
 
-    struct wl_event_source* m_vsyncSource;
-
+    friend class Loader;
     Display m_display;
-
     Input m_input;
 
     static Compositor* g_instance;

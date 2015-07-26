@@ -27,6 +27,8 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <sys/eventfd.h>
+#include <sys/time.h>
 
 #include "Compositor.h"
 
@@ -109,7 +111,7 @@ static void repaint(void* data)
     }
 }
 
-static int completed (int /* fd */, uint32_t mask, void* data)
+static int completed (int fd, uint32_t mask, void* data)
 {
     if (mask == WL_EVENT_READABLE) {
 
@@ -118,7 +120,7 @@ static int completed (int /* fd */, uint32_t mask, void* data)
         assert (compositor != nullptr);
 
         if (compositor != nullptr) {
-            compositor->completed();
+            compositor->completed(fd);
         }
     }
 
@@ -134,9 +136,12 @@ static int completed (int /* fd */, uint32_t mask, void* data)
 
 Compositor::Compositor(const char* socketName)
     : m_repaintSequence(0)
+    , m_eventfd(-1)
     , m_display()
     , m_input()
 {
+    assert (g_instance == nullptr);
+
     pthread_mutexattr_t  structAttributes;
 
     // Create a recursive mutex for this process (no named version, use semaphore)
@@ -157,18 +162,20 @@ Compositor::Compositor(const char* socketName)
             wl_list_init(&m_pointerList);
             wl_list_init(&m_callbackList);
 
-            // m_eventfd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
-            // if (m_eventfd != -1) 
-            // m_vsyncSource = wl_event_loop_add_fd(wl_display_get_event_loop(m_display.display()),
-            //                      m_eventfd, WL_EVENT_READABLE, Athol::completed, this);
-            m_vsyncSource = wl_event_loop_add_fd(wl_display_get_event_loop(m_display.display()),
-                                  -1, WL_EVENT_READABLE, Athol::completed, this);
+            m_eventfd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+            if (m_eventfd != -1) 
+                m_vsyncSource = wl_event_loop_add_fd(wl_display_get_event_loop(m_display.display()),
+                                                     m_eventfd, WL_EVENT_READABLE, Athol::completed, this);
         }
     }
+
+    g_instance = this;
 }
 
 Compositor::~Compositor()
 {
+    if (m_eventfd != -1) 
+        close (m_eventfd);
     pthread_mutex_destroy(&m_syncMutex);
     g_instance = nullptr;
 }
@@ -276,30 +283,33 @@ void Compositor::repaint()
     pthread_mutex_unlock(&m_syncMutex);    
 }
 
-void Compositor::completed ()
+void Compositor::completed (int fd)
 {
     pthread_mutex_lock(&m_syncMutex);    
 
-    // uint64_t time;
-    // ssize_t ret = read(fd, &time, sizeof(time));
-    // if (ret == sizeof(time))
-    // {
+    assert (fd == m_eventfd);
 
-    // And again we completed a sequence.
-    m_repaintSequence++;
+    uint64_t time;
+    ssize_t ret = read(m_eventfd, &time, sizeof(time));
 
-    Surface* surface;
-    wl_list_for_each(surface, &m_callbackList, link)
-        surface->dispatchFrameCallbacks(m_repaintSequence);
+    if (ret == sizeof(time)) {
 
-    // If there were callbacks pending, no other repaint should have been started.
-    if (!wl_list_empty (&m_callbackList)) {
+        // And again we completed a sequence.
+        m_repaintSequence++;
 
-        wl_list_init(&m_callbackList);
+        Surface* surface;
+        wl_list_for_each(surface, &m_callbackList, link)
+            surface->dispatchFrameCallbacks(m_repaintSequence);
 
-        if ( !wl_list_empty (&m_surfaceList) || !wl_list_empty (&m_pointerList) )  {
-            // Seems there is a redraw pending
-            wl_event_loop_add_idle( wl_display_get_event_loop(m_display.display()), Athol::repaint, this);
+        // If there were callbacks pending, no other repaint should have been started.
+        if (!wl_list_empty (&m_callbackList)) {
+
+            wl_list_init(&m_callbackList);
+
+            if ( !wl_list_empty (&m_surfaceList) || !wl_list_empty (&m_pointerList) )  {
+                // Seems there is a redraw pending
+                wl_event_loop_add_idle( wl_display_get_event_loop(m_display.display()), Athol::repaint, this);
+            }
         }
     }
 
@@ -307,5 +317,16 @@ void Compositor::completed ()
 }
 
 #pragma GCC diagnostic pop
+
+void Compositor::updated()
+{
+    struct timeval tv;
+    gettimeofday(&tv, nullptr);
+    uint64_t time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+
+    ssize_t ret = write(m_eventfd, &time, sizeof(time));
+    if (ret != sizeof(time))
+        return; // FIXME: At least log this.
+}
 
 } // namespace Athol
