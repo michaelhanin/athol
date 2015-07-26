@@ -25,16 +25,39 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Input.h"
-
-#include "Athol.h"
-#include "Pointer.h"
 #include <cstdio>
 #include <cstdlib>
 #include <fcntl.h>
 
-Input::Input(Athol& athol)
-    : m_athol(athol)
+#include "Input.h"
+#include "Compositor.h"
+
+namespace Athol {
+
+// ----------------------------------------------------------------------------------------------------
+// LibInput interface implementation for input 
+// ----------------------------------------------------------------------------------------------------
+struct libinput_interface g_interface = {
+
+    // open_restricted
+    [](const char* path, int flags, void*)
+    {
+        return open(path, flags);
+    },
+
+    // close_restricted
+    [](int fd, void*)
+    {
+        close(fd);
+    }
+};
+
+// ----------------------------------------------------------------------------------------------------------
+// Object section. From here we implement the class declarations.
+// ----------------------------------------------------------------------------------------------------------
+// CLASS: Input
+// ----------------------------------------------------------------------------------------------------------
+Input::Input()
 {
     m_handlePointerEvents = std::getenv("ATHOL_POINTER_EVENTS");
 }
@@ -54,7 +77,7 @@ void Input::initialize(std::unique_ptr<API::InputClient> client)
         return;
     }
 
-    m_libinput = libinput_udev_create_context(&m_interface, nullptr, m_udev);
+    m_libinput = libinput_udev_create_context(&g_interface, nullptr, m_udev);
     if (!m_libinput) {
         std::fprintf(stderr, "[Athol] Failed to create libinput context.\n");
         return;
@@ -65,7 +88,7 @@ void Input::initialize(std::unique_ptr<API::InputClient> client)
         return;
     }
 
-    m_eventSource = wl_event_loop_add_fd(wl_display_get_event_loop(m_athol.display()),
+    m_eventSource = wl_event_loop_add_fd(wl_display_get_event_loop(Compositor::instance().display().display()),
         libinput_get_fd(m_libinput), WL_EVENT_READABLE, dispatch, this);
     m_client = std::move(client);
 
@@ -73,24 +96,11 @@ void Input::initialize(std::unique_ptr<API::InputClient> client)
     processEvents();
 }
 
-struct libinput_interface Input::m_interface = {
-    // open_restricted
-    [](const char* path, int flags, void*)
-    {
-        return open(path, flags);
-    },
-    // close_restricted
-    [](int fd, void*)
-    {
-        close(fd);
-    }
-};
-
-int Input::dispatch(int, uint32_t, void* data)
+/* static */ int Input::dispatch(int, uint32_t, void* data)
 {
-    auto& input = *reinterpret_cast<Input*>(data);
-    libinput_dispatch(input.m_libinput);
-    input.processEvents();
+    auto* input = reinterpret_cast<Input*>(data);
+    libinput_dispatch(input->m_libinput);
+    input->processEvents();
     return 0;
 }
 
@@ -113,15 +123,17 @@ void Input::processEvents()
             if (!m_handlePointerEvents)
                 break;
 
+            Compositor& compositor (Athol::Compositor::instance());
+
             auto* pointerEvent = libinput_event_get_pointer_event(event);
             double dx = libinput_event_pointer_get_dx(pointerEvent);
             double dy = libinput_event_pointer_get_dy(pointerEvent);
 
             if (!m_cursorPointer)
-                m_cursorPointer.reset(new Pointer(m_athol));
+                m_cursorPointer.reset(new Pointer(compositor.display()));
 
             m_cursorPointer->move(dx, dy);
-            m_athol.scheduleReposition(*m_cursorPointer);
+            compositor.scheduleReposition(*m_cursorPointer);
 
             m_client->handlePointerMotion(
                 libinput_event_pointer_get_time(pointerEvent), dx, dy);
@@ -164,3 +176,5 @@ void Input::processEvents()
         libinput_event_destroy(event);
     }
 }
+
+} // namespace Athol

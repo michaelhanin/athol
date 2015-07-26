@@ -30,6 +30,8 @@
 #include <cstdlib>
 #include <dlfcn.h>
 
+namespace Athol {
+
 void ShellLoader::load(API::Compositor* compositor)
 {
     const char* shellPath = getenv("ATHOL_SHELL");
@@ -51,3 +53,5 @@ void ShellLoader::load(API::Compositor* compositor)
     std::fprintf(stderr, "[Athol] module_init %p\n", function);
     function(compositor);
 }
+
+} // namespace Athol

@@ -25,130 +25,58 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Surface.h"
-
-#include "Athol.h"
 #include <utility>
 #include <vector>
+#include <assert.h>
 
+
+// The #define enables the additional function declarations in the
+// header files e.g. vc_dispmanx_get_handle_from_wl_buffer
+// BUILD_WAYLAND flag is used in eglext.h
 #define BUILD_WAYLAND
 #include <bcm_host.h>
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+
+#include "Surface.h"
+#include "Compositor.h"
+
+namespace Athol {
+
+using QueryWaylandBufferType = PFNEGLQUERYWAYLANDBUFFERWL;
+static QueryWaylandBufferType g_queryWaylandBufferFn = nullptr;
 
 struct FrameCallback {
     struct wl_resource* resource;
     struct wl_list link;
 };
 
-Surface::Surface(Athol& athol, struct wl_client* client, struct wl_resource* resource, uint32_t id)
-    : m_athol(athol)
-    , m_background(DISPMANX_NO_HANDLE)
-{
-    m_resource = wl_resource_create(client, &wl_surface_interface, wl_resource_get_version(resource), id);
-    wl_resource_set_implementation(m_resource, &m_surfaceInterface, this, destroySurface);
+// ----------------------------------------------------------------------------------------------------
+// Wayland interface implementation for resource
+// ----------------------------------------------------------------------------------------------------
+const struct wl_surface_interface g_surfaceInterface {
 
-    wl_list_init(&m_frameCallbacks);
-
-    {
-        Athol::Update update(athol);
-
-        uint32_t imagePtr;
-        VC_RECT_T rect;
-        vc_dispmanx_rect_set(&rect, 0, 0, athol.width(), athol.height());
-        std::vector<uint8_t> pixels(athol.width() * athol.height() * 4, 0);
-        m_background = vc_dispmanx_resource_create(VC_IMAGE_ARGB8888, athol.width(), athol.height(), &imagePtr);
-        vc_dispmanx_resource_write_data(m_background, VC_IMAGE_ARGB8888, athol.width() * 4, pixels.data(), &rect);
-
-        m_elementHandle = createElement(update, m_background);
-    }
-}
-
-Surface::~Surface()
-{
-    FrameCallback* callback;
-    FrameCallback* nextCallback;
-    wl_list_for_each_safe(callback, nextCallback, &m_frameCallbacks, link)
-        wl_resource_destroy(callback->resource);
-
-    wl_list_init(&m_frameCallbacks);
-
-    if (m_background == DISPMANX_NO_HANDLE && m_elementHandle == DISPMANX_NO_HANDLE)
-        return;
-
-    {
-        Athol::Update update(m_athol);
-        if (m_background != DISPMANX_NO_HANDLE)
-            vc_dispmanx_resource_delete(m_background);
-        if (m_elementHandle != DISPMANX_NO_HANDLE)
-            vc_dispmanx_element_remove(update.handle(), m_elementHandle);
-    }
-}
-
-void Surface::repaint(Athol::Update& update)
-{
-    std::swap(m_buffers.current, m_buffers.pending);
-    if (!m_buffers.current)
-        return;
-
-    EGLint width, height;
-    Athol::f_queryWaylandBuffer(update.eglDisplay(), m_buffers.current.resource(), EGL_WIDTH, &width);
-    Athol::f_queryWaylandBuffer(update.eglDisplay(), m_buffers.current.resource(), EGL_HEIGHT, &height);
-
-    if (width != update.width() || height != update.height())
-        return;
-
-    if (m_background != DISPMANX_NO_HANDLE) {
-        vc_dispmanx_resource_delete(m_background);
-        m_background = DISPMANX_NO_HANDLE;
-
-        if (m_elementHandle != DISPMANX_NO_HANDLE)
-            vc_dispmanx_element_remove(update.handle(), m_elementHandle);
-        m_elementHandle = createElement(update, DISPMANX_NO_HANDLE);
-    }
-
-    vc_dispmanx_element_change_source(update.handle(), m_elementHandle,
-        vc_dispmanx_get_handle_from_wl_buffer(m_buffers.current.resource()));
-}
-
-void Surface::dispatchFrameCallbacks(uint64_t time)
-{
-    FrameCallback* callback;
-    FrameCallback* nextCallback;
-    wl_list_for_each_safe(callback, nextCallback, &m_frameCallbacks, link) {
-        wl_callback_send_done(callback->resource, time);
-        wl_resource_destroy(callback->resource);
-    }
-
-    wl_list_init(&m_frameCallbacks);
-}
-
-void Surface::destroySurface(struct wl_resource* resource)
-{
-    auto* surface = static_cast<Surface*>(wl_resource_get_user_data(resource));
-    surface->m_resource = nullptr;
-    delete surface;
-}
-
-const struct wl_surface_interface Surface::m_surfaceInterface {
     // destroy
     [](struct wl_client*, struct wl_resource* resource)
     {
         wl_resource_destroy(resource);
     },
+
     // attach
     [](struct wl_client*, struct wl_resource* resource, struct wl_resource* bufferResource, int32_t, int32_t)
     {
-        auto& surface = *static_cast<Surface*>(wl_resource_get_user_data(resource));
+        auto* surface = static_cast<Surface*>(wl_resource_get_user_data(resource));
 
-        if (surface.m_buffers.pending.resource() != bufferResource) {
-            struct wl_resource* previousBufferResource = surface.m_buffers.pending.resource();
-            surface.m_buffers.pending = Buffer(bufferResource);
+        assert (surface != nullptr);
 
-            if (previousBufferResource)
-                wl_resource_queue_event(previousBufferResource, WL_BUFFER_RELEASE);
-        }
+        surface->attach(bufferResource);
     },
+
     // damage
-    [](struct wl_client*, struct wl_resource*, int32_t, int32_t, int32_t, int32_t) { },
+    [](struct wl_client*, struct wl_resource*, int32_t, int32_t, int32_t, int32_t) 
+    { 
+    },
+
     // frame
     [](struct wl_client* client, struct wl_resource* resource, uint32_t callbackID)
     {
@@ -162,25 +90,148 @@ const struct wl_surface_interface Surface::m_surfaceInterface {
             });
 
         auto* surface = static_cast<Surface*>(wl_resource_get_user_data(resource));
-        wl_list_insert(surface->m_frameCallbacks.prev, &callback->link);
+        
+        assert (surface != nullptr);
+
+        surface->add (&(callback->link));
+
     },
+
     // set_opaque_region
-    [](struct wl_client*, struct wl_resource*, struct wl_resource*) { },
+    [](struct wl_client*, struct wl_resource*, struct wl_resource*) 
+    { 
+    },
+
     // set_input_region
-    [](struct wl_client*, struct wl_resource*, struct wl_resource*) { },
+    [](struct wl_client*, struct wl_resource*, struct wl_resource*) 
+    { 
+    },
+
     // commit
     [](struct wl_client*, struct wl_resource* resource)
     {
-        auto& surface = *static_cast<Surface*>(wl_resource_get_user_data(resource));
-        surface.m_athol.scheduleRepaint(surface);
+        Athol::Compositor::instance().scheduleRepaint(*static_cast<Surface*>(wl_resource_get_user_data(resource)));
     },
+
     // set_buffer_transform
-    [](struct wl_client*, struct wl_resource*, int) { },
+    [](struct wl_client*, struct wl_resource*, int) 
+    { 
+    },
+
     // set_buffer_scale
-    [](struct wl_client*, struct wl_resource*, int32_t) { }
+    [](struct wl_client*, struct wl_resource*, int32_t) 
+    { 
+    }
 };
 
-DISPMANX_ELEMENT_HANDLE_T Surface::createElement(Athol::Update& update, DISPMANX_RESOURCE_HANDLE_T resource)
+// ----------------------------------------------------------------------------------------------------
+// Static links for Wayland callbacks.
+// ----------------------------------------------------------------------------------------------------
+/* static */ void destroySurface(struct wl_resource* resource)
+{
+    auto* surface = static_cast<Surface*>(wl_resource_get_user_data(resource));
+
+    if (surface != nullptr) {
+        delete surface;
+    }
+}
+
+// ----------------------------------------------------------------------------------------------------------
+// Object section. From here we implement the class declarations.
+// ----------------------------------------------------------------------------------------------------------
+// CLASS: Surface
+// ----------------------------------------------------------------------------------------------------------
+Surface::Surface(Display& display, struct wl_client* client, struct wl_resource* resource, uint32_t id)
+    : m_display(display)
+    , m_background(DISPMANX_NO_HANDLE)
+{
+    if (g_queryWaylandBufferFn == nullptr) {
+        g_queryWaylandBufferFn = reinterpret_cast<QueryWaylandBufferType>(eglGetProcAddress("eglBindWaylandDisplayWL"));
+    }
+
+    assert (g_queryWaylandBufferFn != nullptr);
+
+    m_resource = wl_resource_create(client, &wl_surface_interface, wl_resource_get_version(resource), id);
+    wl_resource_set_implementation(m_resource, &g_surfaceInterface, this, destroySurface);
+
+    wl_list_init(&m_frameCallbacks);
+
+    {
+        Update update(m_display.width(), m_display.height());
+
+        uint32_t imagePtr;
+        VC_RECT_T rect;
+        vc_dispmanx_rect_set(&rect, 0, 0, m_display.width(), m_display.height());
+        std::vector<uint8_t> pixels(m_display.width() * m_display.height() * 4, 0);
+        m_background = vc_dispmanx_resource_create(VC_IMAGE_ARGB8888, m_display.width(), m_display.height(), &imagePtr);
+
+        // TODO: No need for a display.height here??
+        vc_dispmanx_resource_write_data(m_background, VC_IMAGE_ARGB8888, m_display.width() * 4, pixels.data(), &rect);
+        m_elementHandle = createElement(update.handle(), m_background);
+    }
+}
+
+Surface::~Surface()
+{
+    FrameCallback* callback;
+    FrameCallback* nextCallback;
+    wl_list_for_each_safe(callback, nextCallback, &m_frameCallbacks, link)
+        wl_resource_destroy(callback->resource);
+
+    wl_list_init(&m_frameCallbacks);
+
+    if ( (m_background != DISPMANX_NO_HANDLE) || (m_elementHandle != DISPMANX_NO_HANDLE) )
+    {
+        Update update(m_display.width(), m_display.height());
+
+        if (m_background != DISPMANX_NO_HANDLE)
+            vc_dispmanx_resource_delete(m_background);
+        if (m_elementHandle != DISPMANX_NO_HANDLE)
+            vc_dispmanx_element_remove(update.handle(), m_elementHandle);
+    }
+
+    m_resource = nullptr;
+}
+
+void Surface::repaint(Update& update)
+{
+    std::swap(m_current, m_pending);
+    if (!m_current)
+        return;
+
+    EGLint width, height;
+    g_queryWaylandBufferFn(m_display.eglHandle(), m_current, EGL_WIDTH, &width);
+    g_queryWaylandBufferFn(m_display.eglHandle(), m_current, EGL_HEIGHT, &height);
+
+    if (width != update.width() || height != update.height())
+        return;
+
+    if (m_background != DISPMANX_NO_HANDLE) {
+        vc_dispmanx_resource_delete(m_background);
+        m_background = DISPMANX_NO_HANDLE;
+
+        if (m_elementHandle != DISPMANX_NO_HANDLE)
+            vc_dispmanx_element_remove(update.handle(), m_elementHandle);
+        m_elementHandle = createElement(update.handle(), DISPMANX_NO_HANDLE);
+    }
+
+    vc_dispmanx_element_change_source(update.handle(), m_elementHandle,
+        vc_dispmanx_get_handle_from_wl_buffer(m_current));
+}
+
+void Surface::dispatchFrameCallbacks(uint64_t sequence)
+{
+    FrameCallback* callback;
+    FrameCallback* nextCallback;
+    wl_list_for_each_safe(callback, nextCallback, &m_frameCallbacks, link) {
+        wl_callback_send_done(callback->resource, sequence);
+        wl_resource_destroy(callback->resource);
+    }
+
+    wl_list_init(&m_frameCallbacks);
+}
+
+HandleElement Surface::createElement(HandleUpdate update, HandleResource resource)
 {
     static VC_DISPMANX_ALPHA_T alpha = {
         static_cast<DISPMANX_FLAGS_ALPHA_T>(DISPMANX_FLAGS_ALPHA_FIXED_ALL_PIXELS),
@@ -188,10 +239,28 @@ DISPMANX_ELEMENT_HANDLE_T Surface::createElement(Athol::Update& update, DISPMANX
     };
 
     VC_RECT_T srcRect, destRect;
-    vc_dispmanx_rect_set(&srcRect, 0, 0, update.width() << 16, update.height() << 16);
-    vc_dispmanx_rect_set(&destRect, 0, 0, update.width(), update.height());
+    vc_dispmanx_rect_set(&srcRect, 0, 0, m_display.width() << 16, m_display.height() << 16);
+    vc_dispmanx_rect_set(&destRect, 0, 0, m_display.width(), m_display.height());
 
-    return vc_dispmanx_element_add(update.handle(), update.displayHandle(), 0,
+    return vc_dispmanx_element_add(update, m_display.handle(), 0,
         &destRect, resource, &srcRect, DISPMANX_PROTECTION_NONE, &alpha,
         nullptr, DISPMANX_NO_ROTATE);
 }
+
+void Surface::attach (struct wl_resource* resource)
+{
+    if (m_pending != resource) {
+        struct wl_resource* previousResource = m_pending;
+        m_pending = resource;
+
+        if (previousResource)
+            wl_resource_queue_event(previousResource, WL_BUFFER_RELEASE);
+    }
+}
+
+void Surface::add (struct wl_list* resource)
+{
+    wl_list_insert(m_frameCallbacks.prev, resource);
+}
+
+} // namespace Athol

@@ -28,18 +28,31 @@
 #ifndef Pointer_h
 #define Pointer_h
 
-#include "Athol.h"
+#include <utility>
 #include <wayland-util.h>
 
+#include "Types.h"
+#include "Display.h"
+
+namespace Athol {
+
 class Pointer {
+private:
+    Pointer() = delete;
+    Pointer(const Pointer&) = delete;
+    Pointer& operator= (const Pointer&) = delete;
+
+private:
+    // Required to place it in a linked list by the compositor
+    friend class Compositor;
+    struct wl_list link;
+
 public:
-    Pointer(Athol&);
+    Pointer(Display&);
     ~Pointer();
 
     void move(double dx, double dy);
-    void reposition(Athol::Update&);
-
-    struct wl_list link;
+    void reposition(Update&);
 
     struct CursorPointerData {
         static const uint32_t width = 48;
@@ -48,13 +61,15 @@ public:
     };
 
 private:
-    Athol& m_athol;
-    DISPMANX_ELEMENT_HANDLE_T m_elementHandle;
+    Display& m_display;
+    HandleElement m_elementHandle;
 
     const uint32_t pointerWidth = 16;
     const uint32_t pointerHeight = 16;
 
     std::pair<uint32_t, uint32_t> m_position;
 };
+
+} // namespace Athol
 
 #endif

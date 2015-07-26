@@ -25,18 +25,60 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Compositor.h"
-#include "ShellLoader.h"
+#ifndef Display_h
+#define Display_h
 
-int main()
-{
-    Athol::Compositor& athol (Athol::Compositor::create("athol-0"));
+#include <wayland-server.h>
 
-    Athol::ShellLoader::load(athol.loader());
+#include "Types.h"
 
-    athol.run();
+namespace Athol {
 
-    athol.destroy();
+class Display {
+private:
+    Display(const Display&) = delete;
+    Display& operator= (const Display&) = delete;
 
-    return EXIT_SUCCESS;
-}
+public:
+    Display();
+    ~Display();
+
+    inline bool isAvailable() const { return ((m_height != 0) && (m_width != 0)); }
+    inline uint32_t height() const { return (m_height); }
+    inline uint32_t width() const { return (m_width); }
+
+    struct wl_display* display() { return m_display; }
+    inline HandleDisplay handle() { return m_displayHandle; }
+    inline EGLDisplay eglHandle() { return m_eglDisplay; }
+
+private:
+    uint32_t m_height;
+    uint32_t m_width;
+    struct wl_display* m_display;
+    EGLDisplay m_eglDisplay;
+    HandleDisplay m_displayHandle;
+};
+
+class Update {
+private:
+    Update();
+    Update(const Update&);
+    Update& operator=(const Update&);
+
+public:
+    Update(const uint32_t width, const uint32_t height);
+    ~Update();
+
+    inline uint32_t width() const { return m_width; }
+    inline uint32_t height() const { return m_height; }
+    HandleUpdate handle() { return m_updateHandle; }
+
+private:
+    uint32_t m_width;
+    uint32_t m_height;
+    HandleUpdate m_updateHandle;
+};
+
+} // namespace Athol
+
+#endif // Dislay_h

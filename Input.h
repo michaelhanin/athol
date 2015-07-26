@@ -33,22 +33,24 @@
 #include <libudev.h>
 #include <wayland-server.h>
 
-class Athol;
-class Pointer;
+#include "Pointer.h"
+
+namespace Athol {
 
 class Input {
+private:
+    Input(const Input&) = delete;
+    Input& operator= (const Input&) = delete;
+
 public:
-    Input(Athol&);
+    Input();
     ~Input();
     void initialize(std::unique_ptr<API::InputClient>);
 
 private:
-    static struct libinput_interface m_interface;
-
     static int dispatch(int, uint32_t, void*);
     void processEvents();
 
-    Athol& m_athol;
     std::unique_ptr<API::InputClient> m_client;
 
     bool m_handlePointerEvents;
@@ -58,5 +60,7 @@ private:
     struct libinput* m_libinput;
     struct wl_event_source* m_eventSource;
 };
+
+} // namespace Athol
 
 #endif // Input_h

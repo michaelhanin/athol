@@ -25,52 +25,83 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef Surface_h
-#define Surface_h
+#ifndef Compositor_h
+#define Compositor_h
 
 #include <wayland-server.h>
+#include <assert.h>
 
-#include "Types.h"
+#include "Input.h"
+#include "Pointer.h"
+#include "Surface.h"
 #include "Display.h"
+#include "API/Interfaces.h"
 
 namespace Athol {
 
-class Surface {
+class Compositor { 
 private:
-    Surface() = delete;
-    Surface(const Surface&) = delete;
-    Surface& operator= (const Surface&) = delete;
+    Compositor() = delete;
+    Compositor(const Compositor&) = delete;
+    Compositor& operator= (const Compositor&) = delete;
 
-private:
-    // Needed to add this class into a single linked list in the compositor.
-    friend class Compositor;
-    struct wl_list link;
+    Compositor(const char name[]);
+    ~Compositor();
 
 public:
-    Surface(Display& display, struct wl_client*, struct wl_resource*, uint32_t);
-    ~Surface();
+    // Static methods, to access the singelton compositor.
+    inline static Compositor& create (const char name[])
+    {
+        assert (g_instance == nullptr);
 
-    void repaint(Update&);
-    void dispatchFrameCallbacks(uint64_t sequence);
-    void attach(struct wl_resource*);
-    void add(struct wl_list*);
+        Compositor* newInstance = new Compositor(name);
+
+        assert (newInstance != nullptr);
+
+        return (*newInstance);
+    }
+    inline void destroy ()
+    {
+        // Time to commit harakiri :-)
+        delete this; 
+    }
+    inline static Compositor& instance()
+    {
+        assert (g_instance != nullptr);
+
+        return (*g_instance);
+    }
+
+    void run();
+    void scheduleRepaint(Surface&);
+    void scheduleReposition(Pointer&);
+
+    inline Display& display() { return (m_display); }
+    API::Compositor* loader ();
+
+    void repaint();
+    void completed();
 
 private:
-    HandleElement createElement(HandleUpdate, HandleResource);
+    friend class Loader;
+    friend class Callbacks;
 
-private:
-    Display& m_display;
+    pthread_mutex_t m_syncMutex;
 
-    struct wl_resource* m_resource;
-    struct wl_resource* m_current;
-    struct wl_resource* m_pending;
+    unsigned long long m_repaintSequence;
+    struct wl_list m_surfaceList;
+    struct wl_list m_pointerList;
+    struct wl_list m_callbackList;
 
-    struct wl_list m_frameCallbacks;
+    struct wl_event_source* m_vsyncSource;
 
-    HandleElement  m_elementHandle;
-    HandleResource m_background;
+    Display m_display;
+
+    Input m_input;
+
+    static Compositor* g_instance;
 };
 
 } // namespace Athol
 
-#endif // Surface_h
+#endif // Compositor_h

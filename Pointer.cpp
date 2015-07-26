@@ -25,19 +25,18 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Pointer.h"
-
-#define BUILD_WAYLAND
-#include <bcm_host.h>
 #include <vector>
-
 #include <cstdio>
 
-Pointer::Pointer(Athol& athol)
-    : m_athol(athol)
+#include "Pointer.h"
+
+namespace Athol {
+
+Pointer::Pointer(Display& display)
+    : m_display(display)
     , m_position(0, 0)
 {
-    Athol::Update update(athol);
+    Update update(m_display.width(),m_display.height());
 
     static VC_DISPMANX_ALPHA_T alpha = {
         static_cast<DISPMANX_FLAGS_ALPHA_T>(DISPMANX_FLAGS_ALPHA_FROM_SOURCE),
@@ -54,7 +53,7 @@ Pointer::Pointer(Athol& athol)
     vc_dispmanx_rect_set(&srcRect, 0, 0, CursorPointerData::width << 16, CursorPointerData::height << 16);
     vc_dispmanx_rect_set(&destRect, m_position.first, m_position.second, pointerWidth, pointerHeight);
 
-    m_elementHandle = vc_dispmanx_element_add(update.handle(), update.displayHandle(), 10,
+    m_elementHandle = vc_dispmanx_element_add(update.handle(), m_display.handle(), 10,
         &destRect, pointerResource, &srcRect, DISPMANX_PROTECTION_NONE, &alpha,
         nullptr, DISPMANX_NO_ROTATE);
     
@@ -67,18 +66,18 @@ Pointer::~Pointer()
         return;
 
     {
-        Athol::Update update(m_athol);
+        Update update(m_display.width(),m_display.height());
         vc_dispmanx_element_remove(update.handle(), m_elementHandle);
     }
 }
 
 void Pointer::move(double dx, double dy)
 {
-    m_position.first = std::min<uint32_t>(std::max<int32_t>(0, m_position.first + dx), m_athol.width() - 1);
-    m_position.second = std::min<uint32_t>(std::max<int32_t>(0, m_position.second + dy), m_athol.height() - 1);
+    m_position.first = std::min<uint32_t>(std::max<int32_t>(0, m_position.first + dx), m_display.width() - 1);
+    m_position.second = std::min<uint32_t>(std::max<int32_t>(0, m_position.second + dy), m_display.height() - 1);
 }
 
-void Pointer::reposition(Athol::Update& update)
+void Pointer::reposition(Update& update)
 {
     VC_RECT_T destRect;
     vc_dispmanx_rect_set(&destRect, m_position.first, m_position.second, pointerWidth, pointerHeight);
@@ -86,3 +85,5 @@ void Pointer::reposition(Athol::Update& update)
     vc_dispmanx_element_change_attributes(update.handle(), m_elementHandle, 1 << 2,
         0, 0, &destRect, nullptr, DISPMANX_NO_HANDLE, DISPMANX_NO_ROTATE);
 }
+
+} // namespace Athol

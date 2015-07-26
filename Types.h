@@ -25,18 +25,18 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Compositor.h"
-#include "ShellLoader.h"
+#ifndef AtholTypes_h
+#define AtholTypes_h
 
-int main()
-{
-    Athol::Compositor& athol (Athol::Compositor::create("athol-0"));
+#include <EGL/egl.h>
 
-    Athol::ShellLoader::load(athol.loader());
+namespace Athol {
 
-    athol.run();
+typedef DISPMANX_UPDATE_HANDLE_T   HandleUpdate;
+typedef DISPMANX_ELEMENT_HANDLE_T  HandleElement;
+typedef DISPMANX_DISPLAY_HANDLE_T  HandleDisplay;
+typedef DISPMANX_RESOURCE_HANDLE_T HandleResource;
 
-    athol.destroy();
+} //namespace Athol
 
-    return EXIT_SUCCESS;
-}
+#endif // AtholTypes_h
