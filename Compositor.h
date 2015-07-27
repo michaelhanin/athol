@@ -28,8 +28,9 @@
 #ifndef Compositor_h
 #define Compositor_h
 
-#include <wayland-server.h>
+#include <pthread.h>
 #include <assert.h>
+#include <wayland-server.h>
 
 #include "Input.h"
 #include "Pointer.h"

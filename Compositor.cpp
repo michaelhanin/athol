@@ -267,14 +267,16 @@ void Compositor::repaint()
         Update update(m_display.width(), m_display.height());
 
         Surface* surface;
-        wl_list_for_each(surface, &m_surfaceList, link) {
+        Surface* nextSurface;
+        wl_list_for_each_safe(surface, nextSurface, &m_surfaceList, link) {
             surface->repaint(update);
             wl_list_insert(m_callbackList.prev, &(surface->link));
         }
   
         Pointer* pointer;
-        wl_list_for_each(pointer, &m_pointerList, link)
+        wl_list_for_each(pointer, &m_pointerList, link) {
             pointer->reposition(update);
+        }
   
         wl_list_init(&m_surfaceList);
         wl_list_init(&m_pointerList);
@@ -299,7 +301,7 @@ void Compositor::completed (int fd)
 
         Surface* surface;
         wl_list_for_each(surface, &m_callbackList, link)
-            surface->dispatchFrameCallbacks(m_repaintSequence);
+            surface->dispatchFrameCallbacks(time);
 
         // If there were callbacks pending, no other repaint should have been started.
         if (!wl_list_empty (&m_callbackList)) {

@@ -28,6 +28,7 @@
 #ifndef Surface_h
 #define Surface_h
 
+#include <pthread.h>
 #include <wayland-server.h>
 
 #include "Types.h"
@@ -59,11 +60,12 @@ private:
     HandleElement createElement(HandleUpdate, HandleResource);
 
 private:
+    pthread_mutex_t m_syncMutex;
+
     Display& m_display;
 
     struct wl_resource* m_resource;
     struct wl_resource* m_current;
-    struct wl_resource* m_pending;
 
     struct wl_list m_frameCallbacks;
 

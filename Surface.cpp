@@ -143,10 +143,23 @@ const struct wl_surface_interface g_surfaceInterface {
 // ----------------------------------------------------------------------------------------------------------
 Surface::Surface(Display& display, struct wl_client* client, struct wl_resource* resource, uint32_t id)
     : m_display(display)
+    , m_current(nullptr)
+    // , m_pending()
     , m_background(DISPMANX_NO_HANDLE)
 {
+    pthread_mutexattr_t  structAttributes;
+
+    // Create a recursive mutex for this process (no named version, use semaphore)
+    if ( (pthread_mutexattr_init(&structAttributes) != 0) ||
+         (pthread_mutexattr_settype(&structAttributes, PTHREAD_MUTEX_RECURSIVE) != 0) ||
+         (pthread_mutex_init(&m_syncMutex, &structAttributes) != 0) ) {
+
+        // That will be the day, if this fails...
+        assert (false);
+    }
+
     if (g_queryWaylandBufferFn == nullptr) {
-        g_queryWaylandBufferFn = reinterpret_cast<QueryWaylandBufferType>(eglGetProcAddress("eglBindWaylandDisplayWL"));
+        g_queryWaylandBufferFn = reinterpret_cast<QueryWaylandBufferType>(eglGetProcAddress("eglQueryWaylandBufferWL"));
     }
 
     assert (g_queryWaylandBufferFn != nullptr);
@@ -155,6 +168,7 @@ Surface::Surface(Display& display, struct wl_client* client, struct wl_resource*
     wl_resource_set_implementation(m_resource, &g_surfaceInterface, this, destroySurface);
 
     wl_list_init(&m_frameCallbacks);
+    wl_list_init(&link);
 
     {
         Update update(m_display.width(), m_display.height());
@@ -195,28 +209,32 @@ Surface::~Surface()
 
 void Surface::repaint(Update& update)
 {
-    std::swap(m_current, m_pending);
-    if (!m_current)
-        return;
+    pthread_mutex_lock (&m_syncMutex);
 
-    EGLint width, height;
-    g_queryWaylandBufferFn(m_display.eglHandle(), m_current, EGL_WIDTH, &width);
-    g_queryWaylandBufferFn(m_display.eglHandle(), m_current, EGL_HEIGHT, &height);
+    if (m_current != nullptr) {
 
-    if (width != update.width() || height != update.height())
-        return;
+        EGLint width, height;
+        g_queryWaylandBufferFn(m_display.eglHandle(), m_current, EGL_WIDTH, &width);
+        g_queryWaylandBufferFn(m_display.eglHandle(), m_current, EGL_HEIGHT, &height);
 
-    if (m_background != DISPMANX_NO_HANDLE) {
-        vc_dispmanx_resource_delete(m_background);
-        m_background = DISPMANX_NO_HANDLE;
+        if ( (width == update.width()) && (height == update.height()) ) {
 
-        if (m_elementHandle != DISPMANX_NO_HANDLE)
-            vc_dispmanx_element_remove(update.handle(), m_elementHandle);
-        m_elementHandle = createElement(update.handle(), DISPMANX_NO_HANDLE);
+            if (m_background != DISPMANX_NO_HANDLE) {
+
+                vc_dispmanx_resource_delete(m_background);
+                m_background = DISPMANX_NO_HANDLE;
+  
+                if (m_elementHandle != DISPMANX_NO_HANDLE)
+                vc_dispmanx_element_remove(update.handle(), m_elementHandle);
+                m_elementHandle = createElement(update.handle(), DISPMANX_NO_HANDLE);
+            }
+
+            vc_dispmanx_element_change_source(update.handle(), m_elementHandle,
+            vc_dispmanx_get_handle_from_wl_buffer(m_current));
+        }
     }
 
-    vc_dispmanx_element_change_source(update.handle(), m_elementHandle,
-        vc_dispmanx_get_handle_from_wl_buffer(m_current));
+    pthread_mutex_unlock (&m_syncMutex);
 }
 
 void Surface::dispatchFrameCallbacks(uint64_t sequence)
@@ -249,11 +267,15 @@ HandleElement Surface::createElement(HandleUpdate update, HandleResource resourc
 
 void Surface::attach (struct wl_resource* resource)
 {
-    if (m_pending != resource) {
-        struct wl_resource* previousResource = m_pending;
-        m_pending = resource;
+    if (m_current != resource) {
+        struct wl_resource* previousResource = m_current;
 
-        if (previousResource)
+        pthread_mutex_lock (&m_syncMutex);
+        m_current = nullptr;
+        m_current = resource;
+        pthread_mutex_unlock (&m_syncMutex);
+
+        if (previousResource != nullptr)
             wl_resource_queue_event(previousResource, WL_BUFFER_RELEASE);
     }
 }
