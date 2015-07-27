@@ -25,6 +25,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <cstdio>
+
 #include "Compositor.h"
 #include "ShellLoader.h"
 

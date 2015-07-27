@@ -3,9 +3,13 @@ project(Athol)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 
 configure_file(athol.pc.in ${CMAKE_BINARY_DIR}/athol.pc @ONLY)
+
+if(BROADCOM_NEXUS)
+    add_definitions(-DBROADCOM_NEXUS)
+endif()
 
 add_executable(athol
     Compositor.cpp

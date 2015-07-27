@@ -64,8 +64,8 @@ private:
     Display& m_display;
     HandleElement m_elementHandle;
 
-    const uint32_t pointerWidth = 16;
-    const uint32_t pointerHeight = 16;
+    static const uint32_t pointerWidth = 16;
+    static const uint32_t pointerHeight = 16;
 
     std::pair<uint32_t, uint32_t> m_position;
 };

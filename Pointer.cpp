@@ -55,7 +55,7 @@ Pointer::Pointer(Display& display)
 
     m_elementHandle = vc_dispmanx_element_add(update.handle(), m_display.handle(), 10,
         &destRect, pointerResource, &srcRect, DISPMANX_PROTECTION_NONE, &alpha,
-        nullptr, DISPMANX_NO_ROTATE);
+        NULL, DISPMANX_NO_ROTATE);
     
     vc_dispmanx_resource_delete(pointerResource);
 }
@@ -83,7 +83,7 @@ void Pointer::reposition(Update& update)
     vc_dispmanx_rect_set(&destRect, m_position.first, m_position.second, pointerWidth, pointerHeight);
 
     vc_dispmanx_element_change_attributes(update.handle(), m_elementHandle, 1 << 2,
-        0, 0, &destRect, nullptr, DISPMANX_NO_HANDLE, DISPMANX_NO_ROTATE);
+        0, 0, &destRect, NULL, DISPMANX_NO_HANDLE, DISPMANX_NO_ROTATE);
 }
 
 } // namespace Athol

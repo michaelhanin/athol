@@ -32,8 +32,7 @@ namespace Athol {
 // The cursor pointer data uses the modified left_ptr cursor from the
 // Adwaita icon theme of the GNOME project (http://www.gnome.org).
 
-using CursorPointerData = Pointer::CursorPointerData;
-uint8_t CursorPointerData::data[CursorPointerData::width * CursorPointerData::height * 4 + 1] = {
+uint8_t Pointer::CursorPointerData::data[Pointer::CursorPointerData::width * Pointer::CursorPointerData::height * 4 + 1] = {
   "\374\374\374\275\0\0\0\14\0\0\0\12\0\0\0\5\0\0\0\2\0\0\0\0\0\0\0\0\0\0\0"
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"

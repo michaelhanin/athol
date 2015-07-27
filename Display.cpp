@@ -27,14 +27,15 @@
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+
+#ifndef BROADCOM_NEXUS
 #include <bcm_host.h>
+#endif
 
 #include "Display.h"
 #include "Compositor.h"
 
 namespace Athol {
-
-using BindDisplayType = PFNEGLBINDWAYLANDDISPLAYWL;
 
 // ----------------------------------------------------------------------------------------------------------
 // CLASS: Display
@@ -45,14 +46,17 @@ Display::Display()
     , m_width(0)
     , m_height(0)
 {
+#ifdef BROADCOM_NEXUS
+#else
     bcm_host_init();
+#endif
 
     m_eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    eglInitialize(m_eglDisplay, nullptr, nullptr);
+    eglInitialize(m_eglDisplay, NULL, NULL);
 
-    BindDisplayType bindDisplayFn = reinterpret_cast<BindDisplayType>(eglGetProcAddress("eglBindWaylandDisplayWL"));
+    PFNEGLBINDWAYLANDDISPLAYWL bindDisplayFn = reinterpret_cast<PFNEGLBINDWAYLANDDISPLAYWL>(eglGetProcAddress("eglBindWaylandDisplayWL"));
 
-    if (bindDisplayFn != nullptr)
+    if (bindDisplayFn != NULL)
     {
         bindDisplayFn (m_eglDisplay, m_display);
 
@@ -75,9 +79,9 @@ static void complete(HandleUpdate, void* data)
 {
     Compositor* compositor = static_cast<Compositor*>(data);
 
-    assert(compositor != nullptr);
+    assert(compositor != NULL);
 
-    if (compositor != nullptr)
+    if (compositor != NULL)
     {
         compositor->updated();
     }

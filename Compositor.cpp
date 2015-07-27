@@ -96,7 +96,7 @@ static void bindCompositorInterface(struct wl_client* client, void* data, uint32
 	wl_client_post_no_memory(client);
     } 
     else {
-        wl_resource_set_implementation(resource, &g_compositorInterface, data, nullptr);
+        wl_resource_set_implementation(resource, &g_compositorInterface, data, NULL);
     }
 }
 
@@ -104,9 +104,9 @@ static void repaint(void* data)
 {
     auto* compositor = static_cast<Compositor*>(data);
 
-    assert (compositor != nullptr);
+    assert (compositor != NULL);
 
-    if (compositor != nullptr) {
+    if (compositor != NULL) {
         compositor->repaint();
     }
 }
@@ -117,9 +117,9 @@ static int completed (int fd, uint32_t mask, void* data)
 
         auto* compositor= static_cast<Compositor*>(data);
 
-        assert (compositor != nullptr);
+        assert (compositor != NULL);
 
-        if (compositor != nullptr) {
+        if (compositor != NULL) {
             compositor->completed(fd);
         }
     }
@@ -132,7 +132,7 @@ static int completed (int fd, uint32_t mask, void* data)
 // ----------------------------------------------------------------------------------------------------------
 // CLASS: Compositor
 // ----------------------------------------------------------------------------------------------------------
-/* static */ Compositor* Compositor::g_instance = nullptr;
+/* static */ Compositor* Compositor::g_instance = NULL;
 
 Compositor::Compositor(const char* socketName)
     : m_repaintSequence(0)
@@ -140,7 +140,7 @@ Compositor::Compositor(const char* socketName)
     , m_display()
     , m_input()
 {
-    assert (g_instance == nullptr);
+    assert (g_instance == NULL);
 
     pthread_mutexattr_t  structAttributes;
 
@@ -177,7 +177,7 @@ Compositor::~Compositor()
     if (m_eventfd != -1) 
         close (m_eventfd);
     pthread_mutex_destroy(&m_syncMutex);
-    g_instance = nullptr;
+    g_instance = NULL;
 }
 
 void Compositor::run()
@@ -323,7 +323,7 @@ void Compositor::completed (int fd)
 void Compositor::updated()
 {
     struct timeval tv;
-    gettimeofday(&tv, nullptr);
+    gettimeofday(&tv, NULL);
     uint64_t time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
 
     ssize_t ret = write(m_eventfd, &time, sizeof(time));

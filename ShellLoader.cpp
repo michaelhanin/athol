@@ -32,6 +32,8 @@
 
 namespace Athol {
 
+typedef int(*ModuleInit)(API::Compositor*);
+
 void ShellLoader::load(API::Compositor* compositor)
 {
     const char* shellPath = getenv("ATHOL_SHELL");

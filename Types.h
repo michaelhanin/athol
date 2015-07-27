@@ -32,10 +32,17 @@
 
 namespace Athol {
 
+#ifdef BROADCOM_NEXUS
+typedef void*                      HandleUpdate;
+typedef void*                      HandleElement;
+typedef void*                      HandleDisplay;
+typedef void*                      HandleResource;
+#else
 typedef DISPMANX_UPDATE_HANDLE_T   HandleUpdate;
 typedef DISPMANX_ELEMENT_HANDLE_T  HandleElement;
 typedef DISPMANX_DISPLAY_HANDLE_T  HandleDisplay;
 typedef DISPMANX_RESOURCE_HANDLE_T HandleResource;
+#endif
 
 } //namespace Athol
 

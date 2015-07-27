@@ -77,7 +77,7 @@ void Input::initialize(std::unique_ptr<API::InputClient> client)
         return;
     }
 
-    m_libinput = libinput_udev_create_context(&g_interface, nullptr, m_udev);
+    m_libinput = libinput_udev_create_context(&g_interface, NULL, m_udev);
     if (!m_libinput) {
         std::fprintf(stderr, "[Athol] Failed to create libinput context.\n");
         return;

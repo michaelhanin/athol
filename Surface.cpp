@@ -34,7 +34,9 @@
 // header files e.g. vc_dispmanx_get_handle_from_wl_buffer
 // BUILD_WAYLAND flag is used in eglext.h
 #define BUILD_WAYLAND
+#ifndef BROADCOM_NEXUS
 #include <bcm_host.h>
+#endif
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
@@ -43,8 +45,7 @@
 
 namespace Athol {
 
-using QueryWaylandBufferType = PFNEGLQUERYWAYLANDBUFFERWL;
-static QueryWaylandBufferType g_queryWaylandBufferFn = nullptr;
+static PFNEGLQUERYWAYLANDBUFFERWL g_queryWaylandBufferFn = NULL;
 
 struct FrameCallback {
     struct wl_resource* resource;
@@ -67,7 +68,7 @@ const struct wl_surface_interface g_surfaceInterface {
     {
         auto* surface = static_cast<Surface*>(wl_resource_get_user_data(resource));
 
-        assert (surface != nullptr);
+        assert (surface != NULL);
 
         surface->attach(bufferResource);
     },
@@ -82,7 +83,7 @@ const struct wl_surface_interface g_surfaceInterface {
     {
         auto* callback = new FrameCallback;
         callback->resource = wl_resource_create(client, &wl_callback_interface, 1, callbackID);
-        wl_resource_set_implementation(callback->resource, nullptr, callback,
+        wl_resource_set_implementation(callback->resource, NULL, callback,
             [](struct wl_resource* resource) {
                 auto* callback = static_cast<FrameCallback*>(wl_resource_get_user_data(resource));
                 wl_list_remove(&callback->link);
@@ -91,7 +92,7 @@ const struct wl_surface_interface g_surfaceInterface {
 
         auto* surface = static_cast<Surface*>(wl_resource_get_user_data(resource));
         
-        assert (surface != nullptr);
+        assert (surface != NULL);
 
         surface->add (&(callback->link));
 
@@ -131,7 +132,7 @@ const struct wl_surface_interface g_surfaceInterface {
 {
     auto* surface = static_cast<Surface*>(wl_resource_get_user_data(resource));
 
-    if (surface != nullptr) {
+    if (surface != NULL) {
         delete surface;
     }
 }
@@ -143,7 +144,7 @@ const struct wl_surface_interface g_surfaceInterface {
 // ----------------------------------------------------------------------------------------------------------
 Surface::Surface(Display& display, struct wl_client* client, struct wl_resource* resource, uint32_t id)
     : m_display(display)
-    , m_current(nullptr)
+    , m_current(NULL)
     // , m_pending()
     , m_background(DISPMANX_NO_HANDLE)
 {
@@ -158,11 +159,11 @@ Surface::Surface(Display& display, struct wl_client* client, struct wl_resource*
         assert (false);
     }
 
-    if (g_queryWaylandBufferFn == nullptr) {
-        g_queryWaylandBufferFn = reinterpret_cast<QueryWaylandBufferType>(eglGetProcAddress("eglQueryWaylandBufferWL"));
+    if (g_queryWaylandBufferFn == NULL) {
+        g_queryWaylandBufferFn = reinterpret_cast<PFNEGLQUERYWAYLANDBUFFERWL>(eglGetProcAddress("eglQueryWaylandBufferWL"));
     }
 
-    assert (g_queryWaylandBufferFn != nullptr);
+    assert (g_queryWaylandBufferFn != NULL);
 
     m_resource = wl_resource_create(client, &wl_surface_interface, wl_resource_get_version(resource), id);
     wl_resource_set_implementation(m_resource, &g_surfaceInterface, this, destroySurface);
@@ -204,14 +205,14 @@ Surface::~Surface()
             vc_dispmanx_element_remove(update.handle(), m_elementHandle);
     }
 
-    m_resource = nullptr;
+    m_resource = NULL;
 }
 
 void Surface::repaint(Update& update)
 {
     pthread_mutex_lock (&m_syncMutex);
 
-    if (m_current != nullptr) {
+    if (m_current != NULL) {
 
         EGLint width, height;
         g_queryWaylandBufferFn(m_display.eglHandle(), m_current, EGL_WIDTH, &width);
@@ -262,7 +263,7 @@ HandleElement Surface::createElement(HandleUpdate update, HandleResource resourc
 
     return vc_dispmanx_element_add(update, m_display.handle(), 0,
         &destRect, resource, &srcRect, DISPMANX_PROTECTION_NONE, &alpha,
-        nullptr, DISPMANX_NO_ROTATE);
+        NULL, DISPMANX_NO_ROTATE);
 }
 
 void Surface::attach (struct wl_resource* resource)
@@ -271,11 +272,10 @@ void Surface::attach (struct wl_resource* resource)
         struct wl_resource* previousResource = m_current;
 
         pthread_mutex_lock (&m_syncMutex);
-        m_current = nullptr;
         m_current = resource;
         pthread_mutex_unlock (&m_syncMutex);
 
-        if (previousResource != nullptr)
+        if (previousResource != NULL)
             wl_resource_queue_event(previousResource, WL_BUFFER_RELEASE);
     }
 }

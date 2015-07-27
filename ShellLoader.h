@@ -35,7 +35,6 @@ namespace Athol {
 class ShellLoader {
 public:
     static void load(API::Compositor*);
-    using ModuleInit = int(*)(API::Compositor*);
 };
 
 }
