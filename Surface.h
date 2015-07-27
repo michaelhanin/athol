@@ -57,7 +57,8 @@ public:
     void add(struct wl_list*);
 
 private:
-    HandleElement createElement(HandleUpdate, HandleResource);
+    void initialize();
+    void deinitialize();
 
 private:
     pthread_mutex_t m_syncMutex;

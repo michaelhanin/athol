@@ -30,12 +30,19 @@
 
 #include <EGL/egl.h>
 
+#ifdef BROADCOM_NEXUS
+#include <refsw/nexus_config.h>
+#include <refsw/nexus_platform.h>
+#include <refsw/nexus_display.h>
+#endif
+
 namespace Athol {
 
 #ifdef BROADCOM_NEXUS
+
 typedef void*                      HandleUpdate;
-typedef void*                      HandleElement;
-typedef void*                      HandleDisplay;
+typedef NEXUS_SurfaceClient*       HandleElement;
+typedef NEXUS_DisplayHandle        HandleDisplay;
 typedef void*                      HandleResource;
 #else
 typedef DISPMANX_UPDATE_HANDLE_T   HandleUpdate;

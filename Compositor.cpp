@@ -29,6 +29,7 @@
 #include <cstdlib>
 #include <sys/eventfd.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #include "Compositor.h"
 
@@ -47,15 +48,15 @@ public:
     Loader() = default;
     ~Loader() = default;
     
-    virtual uint32_t width() override
+    virtual uint32_t width()
     {
         return (Athol::Compositor::instance().display().width());
     }
-    virtual uint32_t height() override
+    virtual uint32_t height()
     {
         return (Athol::Compositor::instance().display().height());
     }
-    virtual struct wl_display* display() const override
+    virtual struct wl_display* display() const
     {
         return (Athol::Compositor::instance().display().display());
     }
@@ -96,7 +97,7 @@ static void bindCompositorInterface(struct wl_client* client, void* data, uint32
 	wl_client_post_no_memory(client);
     } 
     else {
-        wl_resource_set_implementation(resource, &g_compositorInterface, data, NULL);
+        wl_resource_set_implementation(resource, &g_compositorInterface, data, nullptr);
     }
 }
 
@@ -104,9 +105,9 @@ static void repaint(void* data)
 {
     auto* compositor = static_cast<Compositor*>(data);
 
-    assert (compositor != NULL);
+    assert (compositor != nullptr);
 
-    if (compositor != NULL) {
+    if (compositor != nullptr) {
         compositor->repaint();
     }
 }
@@ -117,9 +118,9 @@ static int completed (int fd, uint32_t mask, void* data)
 
         auto* compositor= static_cast<Compositor*>(data);
 
-        assert (compositor != NULL);
+        assert (compositor != nullptr);
 
-        if (compositor != NULL) {
+        if (compositor != nullptr) {
             compositor->completed(fd);
         }
     }
@@ -132,7 +133,7 @@ static int completed (int fd, uint32_t mask, void* data)
 // ----------------------------------------------------------------------------------------------------------
 // CLASS: Compositor
 // ----------------------------------------------------------------------------------------------------------
-/* static */ Compositor* Compositor::g_instance = NULL;
+/* static */ Compositor* Compositor::g_instance = nullptr;
 
 Compositor::Compositor(const char* socketName)
     : m_repaintSequence(0)
@@ -140,7 +141,7 @@ Compositor::Compositor(const char* socketName)
     , m_display()
     , m_input()
 {
-    assert (g_instance == NULL);
+    assert (g_instance == nullptr);
 
     pthread_mutexattr_t  structAttributes;
 
@@ -177,7 +178,7 @@ Compositor::~Compositor()
     if (m_eventfd != -1) 
         close (m_eventfd);
     pthread_mutex_destroy(&m_syncMutex);
-    g_instance = NULL;
+    g_instance = nullptr;
 }
 
 void Compositor::run()
@@ -318,12 +319,12 @@ void Compositor::completed (int fd)
     pthread_mutex_unlock(&m_syncMutex);    
 }
 
-#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop ignored "-Winvalid-offsetof"
 
 void Compositor::updated()
 {
     struct timeval tv;
-    gettimeofday(&tv, NULL);
+    gettimeofday(&tv, nullptr);
     uint64_t time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
 
     ssize_t ret = write(m_eventfd, &time, sizeof(time));

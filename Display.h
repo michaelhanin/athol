@@ -52,6 +52,10 @@ public:
     inline EGLDisplay eglHandle() { return m_eglDisplay; }
 
 private:
+    void initialize();
+    void deinitialize();
+
+private:
     uint32_t m_height;
     uint32_t m_width;
     struct wl_display* m_display;

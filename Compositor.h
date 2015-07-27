@@ -55,7 +55,7 @@ public:
     {
         Compositor* newInstance = new Compositor(name);
 
-        assert ( (newInstance != NULL) && (newInstance == g_instance) );
+        assert ( (newInstance != nullptr) && (newInstance == g_instance) );
 
         return (*newInstance);
     }
@@ -66,7 +66,7 @@ public:
     }
     inline static Compositor& instance()
     {
-        assert (g_instance != NULL);
+        assert (g_instance != nullptr);
 
         return (*g_instance);
     }
