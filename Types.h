@@ -28,12 +28,18 @@
 #ifndef AtholTypes_h
 #define AtholTypes_h
 
-#include <EGL/egl.h>
+// The #define enables the additional function declarations in the
+// header files e.g. vc_dispmanx_get_handle_from_wl_buffer
+// BUILD_WAYLAND flag is used in eglext.h
+#define BUILD_WAYLAND
 
 #ifdef BROADCOM_NEXUS
 #include <refsw/nexus_config.h>
 #include <refsw/nexus_platform.h>
 #include <refsw/nexus_display.h>
+#include <refsw/default_nexus.h>
+#else
+#include <bcm_host.h>
 #endif
 
 namespace Athol {

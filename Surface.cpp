@@ -25,27 +25,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdio.h>
 #include <utility>
 #include <vector>
 #include <assert.h>
-
-
-// The #define enables the additional function declarations in the
-// header files e.g. vc_dispmanx_get_handle_from_wl_buffer
-// BUILD_WAYLAND flag is used in eglext.h
-#define BUILD_WAYLAND
-#ifndef BROADCOM_NEXUS
-#include <bcm_host.h>
-#endif
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
 
 #include "Surface.h"
 #include "Compositor.h"
 
 namespace Athol {
-
-static PFNEGLQUERYWAYLANDBUFFERWL g_queryWaylandBufferFn = nullptr;
 
 struct FrameCallback {
     struct wl_resource* resource;
@@ -139,6 +127,8 @@ const struct wl_surface_interface g_surfaceInterface {
 
 #ifndef BROADCOM_NEXUS
 
+static PFNEGLQUERYWAYLANDBUFFERWL g_queryWaylandBufferFn = nullptr;
+
 static HandleElement createElement(HandleUpdate update, HandleResource resource, Display& display)
 {
     static VC_DISPMANX_ALPHA_T alpha = {
@@ -209,11 +199,11 @@ void Surface::initialize ()
    win_info.x        = 0;
    win_info.y        = 0;
    win_info.width    = m_display.width();
-   win_info.height   = m_Display.height();
+   win_info.height   = m_display.height();
    win_info.stretch  = true;
    win_info.clientID = 0; //FIXME hardcoding
 
-   fprintf (stdout, "[Athol] Creating native window. Width (%d) x Height (%d)\n", win_info.height(), win_info.width());
+   fprintf (stdout, "[Athol] Creating native window. Width (%d) x Height (%d)\n", win_info.height, win_info.width);
    m_elementHandle = static_cast<NEXUS_SurfaceClient*> (NXPL_CreateNativeWindow ( &win_info ));
    m_background = nullptr;
 }
@@ -269,6 +259,8 @@ void Surface::repaint(Update& update)
 
     if (m_current != nullptr) {
 
+#ifdef BROADCOM_NEXUS
+#else    
         EGLint width, height;
         g_queryWaylandBufferFn(m_display.eglHandle(), m_current, EGL_WIDTH, &width);
         g_queryWaylandBufferFn(m_display.eglHandle(), m_current, EGL_HEIGHT, &height);
@@ -288,6 +280,7 @@ void Surface::repaint(Update& update)
             vc_dispmanx_element_change_source(update.handle(), m_elementHandle,
             vc_dispmanx_get_handle_from_wl_buffer(m_current));
         }
+#endif
     }
 
     pthread_mutex_unlock (&m_syncMutex);

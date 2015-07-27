@@ -29,7 +29,11 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 find_package(PkgConfig)
-pkg_check_modules(EGL egl bcm_host)
+if(BROADCOM_NEXUS)
+    pkg_check_modules(EGL egl)
+else()
+    pkg_check_modules(EGL egl bcm_host)
+endif()
 
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(EGL DEFAULT_MSG EGL_LIBRARIES)

@@ -25,16 +25,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "Display.h"
+#include "Compositor.h"
+
+namespace Athol {
 
 #ifdef BROADCOM_NEXUS
 
-#include <refsw/nexus_config.h>
-#include <refsw/nexus_platform.h>
-#include <refsw/nexus_display.h>
 #include <refsw/nexus_core_utils.h>
-#include <refsw/default_nexus.h>
 
 static NXPL_PlatformHandle  nxpl_handle = 0;
 static NEXUS_VideoFormat gs_requested_video_format  = static_cast<NEXUS_VideoFormat>(~0);
@@ -182,7 +183,7 @@ static NEXUS_DisplayHandle OpenDisplay ( const unsigned int ID, unsigned int& wi
 
     #if NEXUS_NUM_HDMI_OUTPUTS && !NEXUS_DTV_PLATFORM
     fprintf (stdout, "[Athol] Init HDMI.\n");
-    InitHDMIOutput(display);
+    initHDMIOutput(display);
     #endif
 
     NEXUS_Display_GetSettings(display, &display_settings);
@@ -195,20 +196,7 @@ static NEXUS_DisplayHandle OpenDisplay ( const unsigned int ID, unsigned int& wi
   return display;
 }
 
-#else
-
-#include <bcm_host.h>
-
 #endif
-
-// ----------------------------------------------------------------------------------------------------------
-// END PLATFORM DEPENDEND INITIALIZATION/DEINITIALIZATION
-// ----------------------------------------------------------------------------------------------------------
-
-#include "Display.h"
-#include "Compositor.h"
-
-namespace Athol {
 
 // ----------------------------------------------------------------------------------------------------------
 // CLASS: Display
@@ -241,7 +229,7 @@ void Display::initialize ()
     m_width  = ~0;
     m_height = ~0;
 
-    environment = getenv( "ATHOL_SCREEN_WIDTH" );
+    const char* environment = getenv( "ATHOL_SCREEN_WIDTH" );
 
     if ( (environment != NULL) && (environment[0] != '\0') ) {
       m_width = ::atoi(environment);
@@ -256,7 +244,7 @@ void Display::initialize ()
       fprintf (stdout, "[Athol] No override defined in ATHOL_SCREEN_WIDTH\n");
     }
 
-    environment = qgetenv( "ATHOL_SCREEN_HEIGHT" );
+    environment = getenv( "ATHOL_SCREEN_HEIGHT" );
 
     if ( (environment != NULL) && (environment[0] != '\0') ) {
       m_height = ::atoi(environment);
@@ -271,7 +259,7 @@ void Display::initialize ()
       fprintf (stdout, "[Athol] No override defined in ATHOL_SCREEN_HEIGHT\n");
     }
 
-    m_displayHandle = OpenDisplay (0, width, height); 
+    m_displayHandle = OpenDisplay (0, m_width, m_height); 
 
     if (m_displayHandle == NULL) {
       m_width = 0;

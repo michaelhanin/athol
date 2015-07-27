@@ -61,6 +61,10 @@ public:
     };
 
 private:
+    void initialize();
+    void deinitialize();
+
+private:
     Display& m_display;
     HandleElement m_elementHandle;
 

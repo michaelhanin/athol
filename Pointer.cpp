@@ -36,6 +36,29 @@ Pointer::Pointer(Display& display)
     : m_display(display)
     , m_position(0, 0)
 {
+    initialize();
+}
+
+Pointer::~Pointer()
+{
+    deinitialize();
+}
+
+#ifdef BROADCOM_NEXUS
+
+void Pointer::initialize()
+{
+    m_elementHandle = nullptr;
+}
+
+void Pointer::deinitialize()
+{
+}
+
+#else
+
+void Pointer::initialize()
+{
     Update update(m_display.width(),m_display.height());
 
     static VC_DISPMANX_ALPHA_T alpha = {
@@ -60,16 +83,16 @@ Pointer::Pointer(Display& display)
     vc_dispmanx_resource_delete(pointerResource);
 }
 
-Pointer::~Pointer()
+void Pointer::deinitialize()
 {
-    if (m_elementHandle == DISPMANX_NO_HANDLE)
-        return;
-
+    if (m_elementHandle != DISPMANX_NO_HANDLE)
     {
-        Update update(m_display.width(),m_display.height());
+        Update update(m_display.width(), m_display.height());
         vc_dispmanx_element_remove(update.handle(), m_elementHandle);
     }
 }
+
+#endif
 
 void Pointer::move(double dx, double dy)
 {
@@ -79,11 +102,13 @@ void Pointer::move(double dx, double dy)
 
 void Pointer::reposition(Update& update)
 {
+#ifndef BROADCOM_NEXUS
     VC_RECT_T destRect;
     vc_dispmanx_rect_set(&destRect, m_position.first, m_position.second, pointerWidth, pointerHeight);
 
     vc_dispmanx_element_change_attributes(update.handle(), m_elementHandle, 1 << 2,
         0, 0, &destRect, nullptr, DISPMANX_NO_HANDLE, DISPMANX_NO_ROTATE);
+#endif
 }
 
 } // namespace Athol
