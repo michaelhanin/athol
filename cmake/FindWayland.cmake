@@ -29,11 +29,7 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 find_package(PkgConfig)
-if(BROADCOM_NEXUS)
-    pkg_check_modules(WAYLAND wayland-client wayland-server)
-else()
-    pkg_check_modules(WAYLAND wayland-client wayland-server wayland-egl)
-endif()
+pkg_check_modules(WAYLAND wayland-client wayland-server wayland-egl)
 
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(WAYLAND DEFAULT_MSG WAYLAND_LIBRARIES)
