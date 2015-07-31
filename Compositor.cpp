@@ -155,18 +155,25 @@ Compositor::Compositor(const char* socketName)
     }
 
     if (m_display.isAvailable() == true) {
+        fprintf (stdout, "[Athol] Display is available.\n");
         wl_display_add_socket(m_display.display(), socketName);
         setenv("WAYLAND_DISPLAY", socketName, 1);
 
         if (wl_global_create(m_display.display(), &wl_compositor_interface, 3, this, bindCompositorInterface)) {
+            fprintf (stdout, "[Athol] Attached compositor interface to the display.\n");
             wl_list_init(&m_surfaceList);
             wl_list_init(&m_pointerList);
             wl_list_init(&m_callbackList);
 
-            m_eventfd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
-            if (m_eventfd != -1) 
+            //m_eventfd = eventfd(0ULL, EFD_CLOEXEC | EFD_NONBLOCK);
+            m_eventfd = eventfd(0ULL, EFD_NONBLOCK);
+            if (m_eventfd != -1) {
+                fprintf (stdout, "[Athol] Communication file descriptor created.\n");
                 m_vsyncSource = wl_event_loop_add_fd(wl_display_get_event_loop(m_display.display()),
                                                      m_eventfd, WL_EVENT_READABLE, Athol::completed, this);
+            } else {
+                fprintf (stderr, "[Athol] Could not create EventFileDescriptor. Error [%d]\n", errno);
+            }
         }
     }
 

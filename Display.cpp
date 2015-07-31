@@ -148,7 +148,7 @@ static bool InitPlatform ( void )
 
   NEXUS_PlatformSettings platform_settings;
 
-  fprintf (stdout, "[Athol] Initialise Nexus Platform. GetDDefaultSettings().\n");
+  fprintf (stdout, "[Athol] Initialise Nexus Platform. GetDefaultSettings().\n");
 
   /* Initialise the Nexus platform */
   NEXUS_Platform_GetDefaultSettings(&platform_settings);
@@ -157,6 +157,8 @@ static bool InitPlatform ( void )
   fprintf (stdout, "[Athol] Initialise Nexus Platform. Init().\n");
   /* Initialise the Nexus platform */
   err = NEXUS_Platform_Init(&platform_settings);
+
+  fprintf (stdout, "[Athol] Initialised Nexus Platform. Init() => %d.\n", err);
 
   return (err ? false : true);
 }
@@ -191,6 +193,13 @@ static NEXUS_DisplayHandle OpenDisplay ( const unsigned int ID, unsigned int& wi
 
     fprintf (stdout, "[Athol] Register display.\n");
     NXPL_RegisterNexusDisplayPlatform ( &nxpl_handle, display );
+
+    if (width == ~0) {
+      width = video_format_info.width;
+    }
+    if (height == ~0) {
+      height = video_format_info.height;
+    }
   }
 
   return display;
