@@ -42,6 +42,9 @@
 #include <bcm_host.h>
 #endif
 
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+
 namespace Athol {
 
 #ifdef BROADCOM_NEXUS

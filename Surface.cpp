@@ -174,6 +174,8 @@ Surface::Surface(Display& display, struct wl_client* client, struct wl_resource*
     wl_resource_set_implementation(m_resource, &g_surfaceInterface, this, destroySurface);
 
     initialize();
+
+    fprintf (stdout, "[Athol] Created surface.\n");
 }
 
 Surface::~Surface()
@@ -259,6 +261,7 @@ void Surface::repaint(Update& update)
 
     if (m_current != nullptr) {
 
+    fprintf (stdout, "[Athol] Repaint.\n");
 #ifdef BROADCOM_NEXUS
 #else    
         EGLint width, height;
