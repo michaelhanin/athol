@@ -174,8 +174,6 @@ Surface::Surface(Display& display, struct wl_client* client, struct wl_resource*
     wl_resource_set_implementation(m_resource, &g_surfaceInterface, this, destroySurface);
 
     initialize();
-
-    fprintf (stdout, "[Athol] Created surface.\n");
 }
 
 Surface::~Surface()
@@ -196,18 +194,8 @@ Surface::~Surface()
 
 void Surface::initialize ()
 {
-   NXPL_NativeWindowInfo win_info;
-
-   win_info.x        = 0;
-   win_info.y        = 0;
-   win_info.width    = m_display.width();
-   win_info.height   = m_display.height();
-   win_info.stretch  = true;
-   win_info.clientID = 0; //FIXME hardcoding
-
-   fprintf (stdout, "[Athol] Creating native window. Width (%d) x Height (%d)\n", win_info.height, win_info.width);
-   m_elementHandle = static_cast<NEXUS_SurfaceClient*> (NXPL_CreateNativeWindow ( &win_info ));
    m_background = nullptr;
+   m_elementHandle = nullptr;
 }
 
 void Surface::deinitialize ()
@@ -257,13 +245,11 @@ void Surface::deinitialize ()
 
 void Surface::repaint(Update& update)
 {
+#ifndef BROADCOM_NEXUS
     pthread_mutex_lock (&m_syncMutex);
 
     if (m_current != nullptr) {
 
-    fprintf (stdout, "[Athol] Repaint.\n");
-#ifdef BROADCOM_NEXUS
-#else    
         EGLint width, height;
         g_queryWaylandBufferFn(m_display.eglHandle(), m_current, EGL_WIDTH, &width);
         g_queryWaylandBufferFn(m_display.eglHandle(), m_current, EGL_HEIGHT, &height);
@@ -283,14 +269,15 @@ void Surface::repaint(Update& update)
             vc_dispmanx_element_change_source(update.handle(), m_elementHandle,
             vc_dispmanx_get_handle_from_wl_buffer(m_current));
         }
-#endif
     }
 
     pthread_mutex_unlock (&m_syncMutex);
+#endif
 }
 
 void Surface::dispatchFrameCallbacks(uint64_t sequence)
 {
+    fprintf (stderr, "[ATHOL] Dispatching a frame callback !!!.\n");
     FrameCallback* callback;
     FrameCallback* nextCallback;
     wl_list_for_each_safe(callback, nextCallback, &m_frameCallbacks, link) {

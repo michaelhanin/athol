@@ -165,7 +165,6 @@ Compositor::Compositor(const char* socketName)
 
             m_eventfd = eventfd(0ULL, EFD_CLOEXEC | EFD_NONBLOCK);
             if (m_eventfd != -1) {
-                fprintf (stdout, "[Athol] Communication file descriptor created.\n");
                 m_vsyncSource = wl_event_loop_add_fd(wl_display_get_event_loop(m_display.display()),
                                                      m_eventfd, WL_EVENT_READABLE, Athol::completed, this);
             } else {
@@ -208,8 +207,6 @@ API::Compositor* Compositor::loader ()
 
 void Compositor::scheduleRepaint(Surface& surface)
 {
-    fprintf (stdout, "[Athol] scheduleRepaint.\n");
-
     pthread_mutex_lock(&m_syncMutex);    
 
     // See if it is already in the list, if so, we do not need to add it.
@@ -228,7 +225,7 @@ void Compositor::scheduleRepaint(Surface& surface)
         wl_list_insert(m_surfaceList.prev, &surface.link);
 
         if ( wl_list_empty (&m_callbackList) && ((wl_list_length (&m_surfaceList) + wl_list_length (&m_pointerList)) == 1) ) {
-            // It is even the forst entry, make wayland aware of a required repaint.
+            // It is even the first entry, make wayland aware of a required repaint.
             wl_event_loop_add_idle( wl_display_get_event_loop(m_display.display()), Athol::repaint, this);
         }
     }
@@ -284,7 +281,7 @@ void Compositor::repaint()
         wl_list_for_each(pointer, &m_pointerList, link) {
             pointer->reposition(update);
         }
-  
+
         wl_list_init(&m_surfaceList);
         wl_list_init(&m_pointerList);
     }

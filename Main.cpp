@@ -42,6 +42,7 @@ int main()
 
         Athol::ShellLoader::load(athol.loader());
 
+        fprintf (stdout, "[Athol] Loading succeeded, running the athol compositor.\n");
         athol.run();
     }
 
