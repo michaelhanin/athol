@@ -277,7 +277,6 @@ void Surface::repaint(Update& update)
 
 void Surface::dispatchFrameCallbacks(uint64_t sequence)
 {
-    fprintf (stderr, "[ATHOL] Dispatching a frame callback !!!.\n");
     FrameCallback* callback;
     FrameCallback* nextCallback;
     wl_list_for_each_safe(callback, nextCallback, &m_frameCallbacks, link) {
