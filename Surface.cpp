@@ -193,5 +193,5 @@ DISPMANX_ELEMENT_HANDLE_T Surface::createElement(Athol::Update& update, DISPMANX
 
     return vc_dispmanx_element_add(update.handle(), update.displayHandle(), 0,
         &destRect, resource, &srcRect, DISPMANX_PROTECTION_NONE, &alpha,
-        nullptr, DISPMANX_NO_ROTATE);
+        nullptr, DISPMANX_ROTATE_90);
 }
