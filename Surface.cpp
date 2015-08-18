@@ -188,8 +188,8 @@ DISPMANX_ELEMENT_HANDLE_T Surface::createElement(Athol::Update& update, DISPMANX
     };
 
     VC_RECT_T srcRect, destRect;
-    vc_dispmanx_rect_set(&srcRect, 0, 0, update.width() << 16, update.height() << 16);
-    vc_dispmanx_rect_set(&destRect, 0, 0, update.width(), update.height());
+    vc_dispmanx_rect_set(&srcRect, 0, 0, update.height() << 16, update.width() << 16);
+    vc_dispmanx_rect_set(&destRect, 0, 0, update.height(), update.width());
 
     return vc_dispmanx_element_add(update.handle(), update.displayHandle(), 0,
         &destRect, resource, &srcRect, DISPMANX_PROTECTION_NONE, &alpha,
